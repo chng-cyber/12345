@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>加利利之約：醫治與信心之旅</title>
+<style>
+  :root { --gold:#d9b25c; --ink:#1a1410; --paper:rgba(20,14,8,0.78); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#0b0906; font-family: "Noto Serif TC","PingFang TC","Microsoft JhengHei",serif; color:#f3e9d2; }
+  canvas.three { position:fixed; inset:0; display:block; }
+  #loading { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0b0906; z-index:50; font-size:18px; letter-spacing:2px; }
+  #loading .bar { width:260px; height:4px; background:#2a2118; margin-top:16px; border-radius:2px; overflow:hidden; }
+  #loading .bar i { display:block; height:100%; width:0; background:var(--gold); transition:width .3s; }
+
+  /* ---------- Start / role select ---------- */
+  #start { position:fixed; inset:0; z-index:40; display:none; flex-direction:column; align-items:center; justify-content:center; background: radial-gradient(ellipse at 50% 30%, rgba(70,50,20,.75), rgba(5,3,1,.92)); padding:20px; overflow:auto; }
+  #start h1 { font-size: clamp(26px, 5vw, 46px); margin:0 0 6px; color:var(--gold); text-shadow:0 2px 18px rgba(0,0,0,.8); letter-spacing:4px; }
+  #start h2 { font-size: clamp(13px, 2vw, 18px); margin:0 0 22px; font-weight:normal; opacity:.85; letter-spacing:2px; }
+  .roles { display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:14px; max-width:960px; width:100%; }
+  .role { background:var(--paper); border:1px solid rgba(217,178,92,.35); border-radius:10px; padding:14px; cursor:pointer; transition: transform .15s, border-color .15s, background .15s; }
+  .role:hover { transform: translateY(-3px); border-color: var(--gold); background: rgba(40,28,14,.9); }
+  .role h3 { margin:0 0 6px; color:var(--gold); font-size:19px; }
+  .role p { margin:0; font-size:13px; line-height:1.55; opacity:.9; }
+  .role .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(217,178,92,.18); margin-bottom:8px; }
+  #start .foot { margin-top:18px; font-size:12px; opacity:.7; text-align:center; line-height:1.7; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:20; display:none; }
+  #hud > * { pointer-events:auto; }
+  #objective { position:absolute; left:14px; top:14px; max-width:min(380px, 60vw); background:var(--paper); border-left:3px solid var(--gold); padding:10px 14px; border-radius:6px; font-size:14px; line-height:1.5; backdrop-filter: blur(4px); }
+  #objective .role { color:var(--gold); font-size:12px; letter-spacing:2px; padding:0; border:none; background:none; cursor:default; }
+  #objective .act { font-size:12px; opacity:.75; margin-top:2px; }
+  #objective .obj { margin-top:6px; }
+  #objective .hint { margin-top:6px; font-size:12px; opacity:.75; }
+  #stamina { margin-top:8px; display:none; }
+  #stamina .lbl { font-size:11px; opacity:.8; }
+  #stamina .bar { height:6px; background:#2a2118; border-radius:3px; overflow:hidden; margin-top:3px; }
+  #stamina .bar i { display:block; height:100%; width:100%; background:linear-gradient(90deg,#b23a3a,#d9b25c); transition: width .1s linear; }
+
+  #minimapWrap { position:absolute; right:14px; top:14px; width:170px; height:170px; border-radius:50%; border:3px solid rgba(217,178,92,.8); box-shadow:0 0 0 3px rgba(0,0,0,.55), 0 4px 20px rgba(0,0,0,.6); overflow:hidden; background:#2d2416; }
+  #minimap { width:100%; height:100%; display:block; }
+  #compass { position:absolute; right:14px; top:190px; width:170px; text-align:center; font-size:11px; letter-spacing:2px; opacity:.8; }
+
+  #views { position:absolute; right:14px; top:212px; display:flex; flex-direction:column; gap:6px; }
+  #views button, .btn { background:var(--paper); color:#f3e9d2; border:1px solid rgba(217,178,92,.45); border-radius:6px; padding:7px 10px; font-size:12px; cursor:pointer; font-family:inherit; letter-spacing:1px; }
+  #views button.on { background:rgba(217,178,92,.85); color:#1a1410; border-color:var(--gold); font-weight:bold; }
+  #views button:hover { border-color:var(--gold); }
+
+  #actBanner { position:absolute; left:0; right:0; top:28%; text-align:center; opacity:0; transition: opacity .8s; pointer-events:none; }
+  #actBanner .t1 { font-size: clamp(16px,2.6vw,24px); letter-spacing:8px; color:var(--gold); }
+  #actBanner .t2 { font-size: clamp(28px,6vw,54px); letter-spacing:10px; text-shadow:0 4px 24px rgba(0,0,0,.9); margin-top:6px; }
+  #actBanner .t3 { font-size: 14px; opacity:.85; margin-top:10px; letter-spacing:2px; }
+
+  #toast { position:absolute; left:50%; top:16%; transform:translateX(-50%); background:var(--paper); padding:8px 18px; border-radius:20px; font-size:14px; opacity:0; transition:opacity .3s; border:1px solid rgba(217,178,92,.4); white-space:nowrap; }
+
+  #dialogue { position:absolute; left:50%; bottom:max(26px, env(safe-area-inset-bottom)); transform:translateX(-50%); width:min(760px, 94vw); background:linear-gradient(180deg, rgba(28,20,10,.92), rgba(12,8,4,.95)); border:1px solid rgba(217,178,92,.55); border-radius:10px; padding:14px 20px 16px; display:none; box-shadow:0 10px 40px rgba(0,0,0,.7); cursor:pointer; }
+  #dialogue .who { color:var(--gold); font-size:14px; letter-spacing:3px; margin-bottom:6px; }
+  #dialogue .txt { font-size: clamp(15px, 2.2vw, 19px); line-height:1.65; min-height:52px; }
+  #dialogue .next { text-align:right; font-size:12px; opacity:.6; margin-top:6px; animation: blink 1.4s infinite; }
+  @keyframes blink { 0%,100%{opacity:.25} 50%{opacity:.9} }
+
+  #prompt { position:absolute; left:50%; bottom:120px; transform:translateX(-50%); background:rgba(217,178,92,.9); color:#1a1410; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:bold; display:none; box-shadow:0 4px 16px rgba(0,0,0,.6); white-space:nowrap; }
+
+  /* ---------- Mobile controls ---------- */
+  #joy { position:absolute; left:26px; bottom:26px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.10); border:2px solid rgba(255,255,255,.28); display:none; touch-action:none; }
+  #joy .knob { position:absolute; left:40px; top:40px; width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.45); border:2px solid rgba(255,255,255,.7); }
+  #mobBtns { position:absolute; right:22px; bottom:26px; display:none; flex-direction:column; gap:12px; align-items:flex-end; }
+  #mobBtns button { width:74px; height:74px; border-radius:50%; background:rgba(217,178,92,.55); border:2px solid rgba(255,255,255,.6); color:#fff; font-size:14px; font-weight:bold; font-family:inherit; touch-action:none; }
+  #mobBtns button.small { width:56px; height:56px; font-size:12px; background:rgba(255,255,255,.18); }
+  #mobView { position:absolute; right:110px; bottom:36px; display:none; }
+  #mobView button { width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,.18); border:2px solid rgba(255,255,255,.5); color:#fff; font-size:12px; font-family:inherit; }
+
+  /* ---------- End ---------- */
+  #end { position:fixed; inset:0; z-index:45; display:none; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 40%, rgba(80,60,20,.85), rgba(5,3,1,.96)); text-align:center; padding:20px; }
+  #end h1 { color:var(--gold); font-size: clamp(30px,6vw,60px); letter-spacing:12px; margin:0 0 10px; }
+  #end p { max-width:640px; line-height:1.9; font-size:16px; opacity:.92; }
+  #end .verse { color:var(--gold); font-size:20px; margin:14px 0; letter-spacing:2px; }
+  #end button { margin-top:18px; padding:12px 30px; font-size:16px; }
+
+  #vignette { position:fixed; inset:0; pointer-events:none; z-index:15; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.45) 100%); }
+  #letterbox { position:fixed; inset:0; pointer-events:none; z-index:16; opacity:0; transition:opacity .6s; }
+  #letterbox:before, #letterbox:after { content:""; position:absolute; left:0; right:0; height:9vh; background:#000; }
+  #letterbox:before { top:0 } #letterbox:after { bottom:0 }
+  @media (max-width: 700px) {
+    #objective { font-size:12px; max-width:52vw; padding:8px 10px; }
+    #minimapWrap { width:120px; height:120px; }
+    #compass { width:120px; top:140px; }
+    #views { display:none; }
+    #dialogue { bottom: 150px; }
+    #prompt { bottom: 230px; }
+  }
+</style>
+</head>
+<body>
+<div id="loading"><div>加利利之約 · 載入中</div><div class="bar"><i id="loadbar"></i></div><div style="font-size:12px;opacity:.6;margin-top:10px">正在重建第一世紀的迦百農……</div></div>
+
+<div id="start">
+  <h1>加利利之約</h1>
+  <h2>醫治與信心之旅 ｜ 馬可福音 5:21-43</h2>
+  <div class="roles">
+    <div class="role" data-role="jesus"><span class="tag">主角視角</span><h3>耶穌</h3><p>從加利利海邊出發，突破市集人潮、羊群阻擋與人牆包圍，前往睚魯的家，說出「大利大古米」。</p></div>
+    <div class="role" data-role="woman"><span class="tag">隱匿潛行</span><h3>血漏病婦人</h3><p>患病十二年、身體虛弱。在擁擠的市集中隱匿穿梭，從後方摸到耶穌外袍的繸子。</p></div>
+    <div class="role" data-role="jairus"><span class="tag">雙幕劇情</span><h3>睚魯（會堂主管）</h3><p>先在臥室與病重的女兒對話，再奔向海邊，俯伏在耶穌腳前求救。</p></div>
+    <div class="role" data-role="peter"><span class="tag">技能：吶喊</span><h3>彼得（使徒）</h3><p>保護耶穌開路。按空白鍵大喊「讓開！」驅散擋路的群眾與羊群。</p></div>
+  </div>
+  <div class="foot">電腦：W A S D 移動 ｜ 空白鍵 互動／技能 ｜ 數字鍵 1~4 切換視角 ｜ 滑鼠拖曳旋轉鏡頭<br>手機：左側虛擬搖桿移動 ｜ 右側按鈕 互動／切換視角</div>
+</div>
+
+<div id="hud">
+  <div id="objective">
+    <div class="role" id="hudRole">—</div>
+    <div class="act" id="hudAct">—</div>
+    <div class="obj" id="hudObj">—</div>
+    <div class="hint" id="hudHint">空白鍵：互動</div>
+    <div id="stamina"><div class="lbl">體力（虛弱）</div><div class="bar"><i id="stamBar"></i></div></div>
+  </div>
+  <div id="minimapWrap"><canvas id="minimap" width="340" height="340"></canvas></div>
+  <div id="compass">N ↑ 旋轉雷達</div>
+  <div id="views">
+    <button data-v="1">1 上帝視角</button>
+    <button data-v="2" class="on">2 第三人稱</button>
+    <button data-v="3">3 第一人稱</button>
+    <button data-v="4">4 電影運鏡</button>
+  </div>
+  <div id="actBanner"><div class="t1" id="actT1"></div><div class="t2" id="actT2"></div><div class="t3" id="actT3"></div></div>
+  <div id="toast"></div>
+  <div id="prompt"></div>
+  <div id="dialogue"><div class="who" id="dWho"></div><div class="txt" id="dTxt"></div><div class="next">▼ 空白鍵 / 點擊 繼續</div></div>
+  <div id="joy"><div class="knob" id="knob"></div></div>
+  <div id="mobBtns"><button id="mobView2" class="small">視角</button><button id="mobAct">互動</button></div>
+</div>
+<div id="vignette"></div>
+<div id="letterbox"></div>
+
+<div id="end">
+  <h1>全劇終</h1>
+  <div class="verse">「不要怕，只要信！」— 馬可福音 5:36</div>
+  <p id="endText">耶穌拉著女孩的手，說：「大利大古米！」女孩立時起來走路。眾人就大大地驚奇。祂又囑咐他們給她東西吃。</p>
+  <p style="font-size:13px;opacity:.7">血漏病婦人憑著信心摸到衣裳繸子得醫治；睚魯在絕望中聽見「只要信」。<br>願你也在加利利的湖光中，遇見那位說「平平安安回去吧」的主。</p>
+  <button class="btn" onclick="location.reload()">重新開始 · 選擇其他角色</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* =====================================================================
+   基礎工具
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const isMobile = ('ontouchstart' in window) && navigator.maxTouchPoints > 0 && Math.min(innerWidth, innerHeight) < 900;
+let _seed = 20240521;
+function rnd(){ _seed = (_seed * 16807) % 2147483647; return (_seed - 1) / 2147483646; }
+function rr(a,b){ return a + rnd()*(b-a); }
+function pick(arr){ return arr[Math.floor(rnd()*arr.length)]; }
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp = (a,b,t)=>a+(b-a)*t;
+function setLoad(p){ $('loadbar').style.width = (p*100)+'%'; }
+const V3 = (x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
+
+/* =====================================================================
+   渲染器 / 場景 / 燈光 (ACES Filmic)
+   ===================================================================== */
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.domElement.className = 'three';
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xdccfb0, 110, 320);
+const camera = new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.1, 900);
+
+const sun = new THREE.DirectionalLight(0xfff0d2, 2.7);
+sun.position.set(55, 95, -45);
+sun.castShadow = true;
+sun.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left:-55, right:55, top:55, bottom:-55, near:5, far:300 });
+sun.shadow.bias = -0.00045; sun.shadow.normalBias = 0.03; sun.shadow.radius = 3;
+scene.add(sun, sun.target);
+const hemi = new THREE.HemisphereLight(0xa9cbff, 0x9c7a4a, 0.6);
+scene.add(hemi);
+const fill = new THREE.DirectionalLight(0xc8d8ff, 0.35); fill.position.set(-40, 30, 60); scene.add(fill);
+
+/* =====================================================================
+   天空（動態雲朵 Shader）
+   ===================================================================== */
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite:false, fog:false,
+  uniforms: { uTime:{value:0}, uSun:{value: sun.position.clone().normalize()} },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform float uTime; uniform vec3 uSun; varying vec3 vDir;
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+    float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
+    float fbm(vec2 p){ float v=0.0, a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p=p*2.03+vec2(17.0,9.0); a*=0.5; } return v; }
+    void main(){
+      vec3 d = normalize(vDir);
+      float h = clamp(d.y, -0.05, 1.0);
+      vec3 zenith = vec3(0.19,0.42,0.80), horizon = vec3(0.86,0.80,0.66), ground = vec3(0.72,0.64,0.50);
+      vec3 col = mix(horizon, zenith, pow(h, 0.55));
+      if(d.y < 0.0) col = ground;
+      float sd = max(dot(d, uSun), 0.0);
+      col += vec3(1.0,0.85,0.6) * (pow(sd, 400.0)*3.0 + pow(sd, 10.0)*0.25);
+      // 雲：投影到平面
+      if(d.y > 0.02){
+        vec2 uv = d.xz / (d.y + 0.15) * 1.6;
+        uv += vec2(uTime*0.012, uTime*0.004);
+        float c = fbm(uv*1.3);
+        c = smoothstep(0.52, 0.78, c);
+        float shade = fbm(uv*2.6 + 3.1);
+        vec3 cloud = mix(vec3(0.78,0.78,0.82), vec3(1.0,0.99,0.97), shade);
+        float fade = smoothstep(0.02, 0.22, d.y);
+        col = mix(col, cloud, c * fade * 0.95);
+      }
+      gl_FragColor = vec4(col, 1.0);
+    }`
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(800, 32, 16), skyMat));
+
+/* =====================================================================
+   加利利海 水面（Gerstner 風格波浪 + 菲涅耳 + 太陽高光）
+   ===================================================================== */
+const waterUniforms = THREE.UniformsUtils.merge([ THREE.UniformsLib.fog, {
+  uTime:{value:0}, uSun:{value: sun.position.clone().normalize()}, uCam:{value:new THREE.Vector3()}
+}]);
+const waterMat = new THREE.ShaderMaterial({
+  uniforms: waterUniforms, fog:true, transparent:false,
+  vertexShader: `
+    #include <fog_pars_vertex>
+    uniform float uTime; varying vec3 vWorld; varying vec3 vNormal; varying vec2 vUv;
+    void main(){
+      vec3 p = position;
+      vec4 w = modelMatrix * vec4(p,1.0);
+      float t = uTime;
+      float dx = 0.0, dz = 0.0, y = 0.0;
+      // 三組方向波
+      vec2 D[3]; float A[3]; float L[3]; float S[3];
+      D[0]=normalize(vec2(1.0,0.3)); A[0]=0.10; L[0]=6.0; S[0]=1.6;
+      D[1]=normalize(vec2(-0.5,1.0)); A[1]=0.06; L[1]=3.2; S[1]=2.1;
+      D[2]=normalize(vec2(0.3,-1.0)); A[2]=0.035; L[2]=1.5; S[2]=2.8;
+      for(int i=0;i<3;i++){
+        float k = 6.28318/L[i]; float ph = k*dot(D[i], w.xz) + S[i]*t;
+        y += A[i]*sin(ph);
+        dx += A[i]*k*D[i].x*cos(ph);
+        dz += A[i]*k*D[i].y*cos(ph);
+      }
+      w.y += y;
+      vWorld = w.xyz; vNormal = normalize(vec3(-dx, 1.0, -dz)); vUv = uv;
+      vec4 mvPosition = viewMatrix * w;
+      gl_Position = projectionMatrix * mvPosition;
+      #include <fog_vertex>
+    }`,
+  fragmentShader: `
+    #include <fog_pars_fragment>
+    uniform float uTime; uniform vec3 uSun; uniform vec3 uCam; varying vec3 vWorld; varying vec3 vNormal; varying vec2 vUv;
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+    float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
+    void main(){
+      vec3 n = normalize(vNormal);
+      // 細碎漣漪法線擾動
+      float r1 = noise(vWorld.xz*1.7 + uTime*0.6), r2 = noise(vWorld.xz*1.7 - uTime*0.5 + 7.0);
+      n = normalize(n + vec3(r1-0.5, 0.0, r2-0.5)*0.35);
+      vec3 V = normalize(uCam - vWorld);
+      float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
+      vec3 deep = vec3(0.03,0.17,0.26), shallow = vec3(0.10,0.40,0.46), sky = vec3(0.62,0.74,0.86);
+      float shore = smoothstep(-70.0, -50.0, vWorld.z);
+      vec3 base = mix(deep, shallow, shore*0.8 + 0.1);
+      vec3 col = mix(base, sky, fres*0.85);
+      vec3 H = normalize(uSun + V);
+      float spec = pow(max(dot(n, H), 0.0), 240.0);
+      float sparkle = pow(max(dot(n, H), 0.0), 60.0) * (0.5 + 0.5*noise(vWorld.xz*6.0 + uTime*2.0));
+      col += vec3(1.0,0.95,0.8) * (spec*2.4 + sparkle*0.35);
+      // 岸邊白沫
+      float foam = smoothstep(-52.5, -50.5, vWorld.z + sin(vWorld.x*0.5 + uTime*1.2)*0.8) * (0.5+0.5*noise(vWorld.xz*3.0+uTime));
+      col = mix(col, vec3(0.9,0.93,0.92), foam*0.7);
+      gl_FragColor = vec4(col, 1.0);
+      #include <fog_fragment>
+    }`
+});
+const waterGeo = new THREE.PlaneGeometry(900, 520, isMobile ? 120 : 220, isMobile ? 70 : 130);
+waterGeo.rotateX(-Math.PI/2);
+const water = new THREE.Mesh(waterGeo, waterMat);
+water.position.set(0, -0.35, -50 - 260);
+scene.add(water);
+
+/* =====================================================================
+   程序化材質貼圖（灰泥、石牆、石板、黃土、木紋、條紋布）
+   ===================================================================== */
+function canvasTex(size, draw, repeat=1){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'); draw(g, size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function speckle(g, s, n, alpha, dark=true){
+  for(let i=0;i<n;i++){
+    const v = Math.floor(rnd()*60);
+    g.fillStyle = dark ? `rgba(${v},${v*0.8},${v*0.6},${alpha})` : `rgba(255,250,240,${alpha})`;
+    g.fillRect(rnd()*s, rnd()*s, rnd()*3+1, rnd()*3+1);
+  }
+}
+const TEX = {
+  stucco: (hex)=>canvasTex(256, (g,s)=>{
+    g.fillStyle = hex; g.fillRect(0,0,s,s);
+    speckle(g,s,2600,0.08); speckle(g,s,900,0.10,false);
+    g.strokeStyle='rgba(60,40,20,0.18)'; g.lineWidth=1;
+    for(let i=0;i<6;i++){ g.beginPath(); let x=rnd()*s,y=rnd()*s; g.moveTo(x,y); for(let k=0;k<5;k++){ x+=rr(-30,30); y+=rr(5,30); g.lineTo(x,y);} g.stroke(); }
+  }, 2),
+  stone: canvasTex(256, (g,s)=>{
+    g.fillStyle = '#8a7a62'; g.fillRect(0,0,s,s);
+    const rows = 6, h = s/rows;
+    for(let r=0;r<rows;r++){
+      let x = (r%2)*22; const y = r*h;
+      while(x < s){
+        const w = rr(28,56);
+        const v = Math.floor(rr(150,200));
+        g.fillStyle = `rgb(${v},${v-18},${v-42})`;
+        g.fillRect(x+2, y+2, Math.min(w, s-x)-4, h-4);
+        g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(x+3, y+3, Math.min(w,s-x)-6, 3);
+        x += w;
+      }
+    }
+    speckle(g,s,1600,0.12);
+  }, 1.5),
+  slabs: canvasTex(256, (g,s)=>{
+    g.fillStyle = '#6d6150'; g.fillRect(0,0,s,s);
+    for(let y=0;y<s;y+=44){ for(let x=0;x<s;x+=52){
+      const v = Math.floor(rr(140,185));
+      g.fillStyle = `rgb(${v},${v-8},${v-24})`;
+      g.fillRect(x+rr(1,4), y+rr(1,4), 52-rr(4,9), 44-rr(4,9));
+    }}
+    speckle(g,s,2000,0.12);
+  }, 6),
+  sand: canvasTex(256, (g,s)=>{
+    g.fillStyle = '#b9a071'; g.fillRect(0,0,s,s);
+    speckle(g,s,5000,0.07); speckle(g,s,2500,0.08,false);
+  }, 60),
+  wood: canvasTex(128, (g,s)=>{
+    g.fillStyle = '#5a3d22'; g.fillRect(0,0,s,s);
+    for(let i=0;i<40;i++){ g.strokeStyle = `rgba(${Math.floor(rr(30,70))},${Math.floor(rr(18,40))},10,0.35)`; g.lineWidth = rr(1,3); g.beginPath(); g.moveTo(0, rnd()*s); g.bezierCurveTo(s/3, rnd()*s, 2*s/3, rnd()*s, s, rnd()*s); g.stroke(); }
+  }, 1),
+  stripes: (c1,c2)=>canvasTex(128, (g,s)=>{
+    for(let i=0;i<8;i++){ g.fillStyle = i%2? c1 : c2; g.fillRect(i*s/8, 0, s/8, s); }
+    speckle(g,s,600,0.08);
+  }, 2),
+  rug: canvasTex(128, (g,s)=>{
+    g.fillStyle='#7a2b2b'; g.fillRect(0,0,s,s);
+    g.strokeStyle='#d9b25c'; g.lineWidth=4; g.strokeRect(8,8,s-16,s-16);
+    g.fillStyle='#2b3d6b'; for(let i=0;i<4;i++) for(let j=0;j<4;j++) g.fillRect(20+i*24, 20+j*24, 10, 10);
+  }, 1),
+};
+TEX.sand.repeat.set(70,70);
+const MAT = {
+  stucco: [ TEX.stucco('#d8c7a4'), TEX.stucco('#c9b48c'), TEX.stucco('#e2d3b3'), TEX.stucco('#bfa77f') ].map(t=>new THREE.MeshStandardMaterial({ map:t, roughness:0.95, metalness:0 })),
+  stone: new THREE.MeshStandardMaterial({ map:TEX.stone, roughness:0.92 }),
+  slabs: new THREE.MeshStandardMaterial({ map:TEX.slabs, roughness:0.9 }),
+  sand: new THREE.MeshStandardMaterial({ map:TEX.sand, roughness:1 }),
+  wood: new THREE.MeshStandardMaterial({ map:TEX.wood, roughness:0.8 }),
+  darkwood: new THREE.MeshStandardMaterial({ color:0x3a2614, roughness:0.85 }),
+  awnings: [ TEX.stripes('#c94a3a','#f0e2c8'), TEX.stripes('#3b5a8a','#f0e2c8'), TEX.stripes('#7a5a2a','#e8d6b0'), TEX.stripes('#5a7a4a','#efe6cf') ].map(t=>new THREE.MeshStandardMaterial({ map:t, roughness:0.9, side:THREE.DoubleSide })),
+  rug: new THREE.MeshStandardMaterial({ map:TEX.rug, roughness:1 }),
+  clay: new THREE.MeshStandardMaterial({ color:0x9a6a44, roughness:0.9 }),
+  leaf: new THREE.MeshStandardMaterial({ color:0x5d7a4a, roughness:0.9 }),
+  olive: new THREE.MeshStandardMaterial({ color:0x7f8f6a, roughness:0.95 }),
+  dark: new THREE.MeshStandardMaterial({ color:0x15100a, roughness:1 }),
+  flame: new THREE.MeshBasicMaterial({ color:0xffc24a }),
+  brass: new THREE.MeshStandardMaterial({ color:0xb08a3a, roughness:0.4, metalness:0.7 }),
+};
+
+/* =====================================================================
+   地形：黃土地、沙灘坡、石板大街、廣場
+   ===================================================================== */
+const colliders = [];   // {x1,z1,x2,z2}
+const mapRects = [];    // 小地圖用建築
+function addCollider(x1,z1,x2,z2){ colliders.push({x1:Math.min(x1,x2), z1:Math.min(z1,z2), x2:Math.max(x1,x2), z2:Math.max(z1,z2)}); }
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 600), MAT.sand);
+ground.rotation.x = -Math.PI/2; ground.position.set(0, 0, 250); ground.receiveShadow = true; scene.add(ground);
+// 沙灘坡
+{
+  const g = new THREE.PlaneGeometry(900, 12, 1, 1);
+  const p = g.attributes.position; // y 向下傾斜
+  for(let i=0;i<p.count;i++){ if(p.getY(i) > 0) p.setZ(i, 0); else p.setZ(i, -0.9); }
+  g.computeVertexNormals(); g.rotateX(-Math.PI/2);
+  const beach = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color:0xc9b48a, roughness:1 }));
+  beach.position.set(0, 0.0, -56); beach.receiveShadow = true; scene.add(beach);
+}
+function slab(x,z,w,d,y=0.02){ const m = new THREE.Mesh(new THREE.PlaneGeometry(w,d), MAT.slabs); m.rotation.x=-Math.PI/2; m.position.set(x,y,z); m.receiveShadow=true; scene.add(m); }
+slab(0, 22, 9, 134);           // 主街：海邊 -> 睚魯家
+slab(22, 34, 36, 7);           // 往會堂廣場的橫街
+slab(55, 36, 36, 34);          // 會堂廣場
+slab(0, 100, 20, 20, 0.025);   // 睚魯家庭院
+/* =====================================================================
+   建築：第一世紀加利利民居（石基、灰泥牆、平頂矮牆、外露木樑、外置石階、遮陽篷）
+   ===================================================================== */
+const boxGeo = new THREE.BoxGeometry(1,1,1);
+const cylGeo = new THREE.CylinderGeometry(1,1,1,10);
+function box(parent, mat, x,y,z, w,h,d, shadow=true){
+  const m = new THREE.Mesh(boxGeo, mat); m.position.set(x,y,z); m.scale.set(w,h,d);
+  m.castShadow = shadow; m.receiveShadow = true; parent.add(m); return m;
+}
+function cyl(parent, mat, x,y,z, r,h, rx=0, rz=0){
+  const m = new THREE.Mesh(cylGeo, mat); m.position.set(x,y,z); m.scale.set(r,h,r); m.rotation.set(rx,0,rz);
+  m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+}
+const buildings = [];
+function makeHouse(x, z, w, d, h, rotY=0, o={}){
+  const g = new THREE.Group(); g.position.set(x,0,z); g.rotation.y = rotY;
+  const stucco = o.mat || pick(MAT.stucco);
+  box(g, stucco, 0, h/2, 0, w, h, d);
+  box(g, MAT.stone, 0, 0.5, 0, w+0.12, 1.0, d+0.12);
+  // 屋頂矮牆 (parapet)
+  const pt = 0.28, ph = 0.55;
+  box(g, stucco, 0, h+ph/2, d/2-pt/2, w, ph, pt);
+  box(g, stucco, 0, h+ph/2, -d/2+pt/2, w, ph, pt);
+  box(g, stucco, w/2-pt/2, h+ph/2, 0, pt, ph, d);
+  box(g, stucco, -w/2+pt/2, h+ph/2, 0, pt, ph, d);
+  // 外露木樑
+  for(let bx=-w/2+0.6; bx<w/2-0.3; bx+=0.9){
+    cyl(g, MAT.wood, bx, h-0.35, d/2+0.2, 0.09, 0.55, Math.PI/2);
+  }
+  // 木門 + 門楣
+  const doorX = o.doorX || 0;
+  box(g, MAT.dark, doorX, 1.0, d/2+0.02, 1.15, 2.0, 0.08, false);
+  box(g, MAT.wood, doorX, 1.0, d/2+0.06, 0.95, 1.9, 0.06);
+  box(g, MAT.wood, doorX+0.25, 1.0, d/2+0.09, 0.02, 1.9, 0.02);
+  box(g, MAT.wood, doorX, 2.1, d/2+0.1, 1.5, 0.18, 0.22);
+  // 窗（木框 + 深色凹洞）
+  const wins = o.wins ?? 2;
+  for(let i=0;i<wins;i++){
+    const wx = (i===0 ? -w/2+1.1 : w/2-1.1) + (wins===1 ? w/2-1.1 : 0);
+    if(Math.abs(wx-doorX) < 1.2) continue;
+    box(g, MAT.dark, wx, h-1.4, d/2+0.02, 0.62, 0.72, 0.1, false);
+    box(g, MAT.wood, wx, h-1.4+0.39, d/2+0.06, 0.78, 0.07, 0.12);
+    box(g, MAT.wood, wx, h-1.4-0.39, d/2+0.06, 0.78, 0.07, 0.12);
+    box(g, MAT.wood, wx, h-1.4, d/2+0.04, 0.05, 0.72, 0.1);
+  }
+  // 側面窗
+  box(g, MAT.dark, w/2+0.02, h-1.5, 0, 0.1, 0.6, 0.55, false);
+  // 外置石階（沿側牆上到屋頂）
+  if(o.stairs){
+    const side = o.stairs === 'L' ? -1 : 1, n = 9, sh = h/n, sd = d*0.8/n;
+    for(let i=0;i<n;i++){
+      box(g, MAT.stone, side*(w/2+0.45), sh*(i+0.5), -d*0.4 + sd*(i+0.5), 0.9, sh, sd);
+    }
+    box(g, MAT.stone, side*(w/2+0.9), h*0.5, 0, 0.12, h, d*0.8); // 階梯外側擋牆
+  }
+  // 布質遮陽篷
+  if(o.awning){
+    const aw = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.7), pick(MAT.awnings));
+    aw.position.set(doorX, 2.55, d/2+0.95); aw.rotation.x = -Math.PI/2 + 0.32; aw.castShadow = true; g.add(aw);
+    cyl(g, MAT.wood, doorX-1.25, 1.2, d/2+1.75, 0.045, 2.4);
+    cyl(g, MAT.wood, doorX+1.25, 1.2, d/2+1.75, 0.045, 2.4);
+  }
+  // 屋頂雜物：陶罐
+  if(rnd() > 0.4){ cyl(g, MAT.clay, w/2-0.8, h+0.35, -d/2+0.8, 0.25, 0.6); }
+  if(rnd() > 0.6){ box(g, MAT.wood, -w/2+1.0, h+0.2, d/2-1.0, 1.2, 0.4, 0.8); }
+  scene.add(g);
+  // 碰撞 AABB（含旋轉近似）
+  const cos = Math.abs(Math.cos(rotY)), sin = Math.abs(Math.sin(rotY));
+  const hw = (w*cos + d*sin)/2 + 0.3, hd = (w*sin + d*cos)/2 + 0.3;
+  addCollider(x-hw, z-hd, x+hw, z+hd);
+  mapRects.push({x:x-hw, z:z-hd, w:hw*2, d:hd*2});
+  buildings.push(g);
+  return g;
+}
+
+// 沿街民居
+const houseSpecs = [];
+for(let z=-28; z<=78; z+=13){
+  houseSpecs.push({x:-12-rr(0,2), z:z+rr(-2,2), w:rr(6,8), d:rr(5,7), h:rr(3.6,4.6), rot:Math.PI/2, o:{stairs: rnd()>0.5?'R':null, awning: rnd()>0.5}});
+  houseSpecs.push({x:12+rr(0,2), z:z+rr(-2,2), w:rr(6,8), d:rr(5,7), h:rr(3.6,4.6), rot:-Math.PI/2, o:{stairs: rnd()>0.5?'L':null, awning: rnd()>0.5}});
+}
+for(let z=-20; z<=80; z+=15){
+  houseSpecs.push({x:-26-rr(0,3), z:z+rr(-3,3), w:rr(5,8), d:rr(5,7), h:rr(3.2,4.4), rot:rnd()>0.5?Math.PI/2:0, o:{stairs: rnd()>0.6?'R':null}});
+  if(z < 15 || z > 55) houseSpecs.push({x:26+rr(0,3), z:z+rr(-3,3), w:rr(5,8), d:rr(5,7), h:rr(3.2,4.4), rot:rnd()>0.5?-Math.PI/2:0, o:{stairs: rnd()>0.6?'L':null}});
+}
+for(let z=-10; z<=85; z+=17){
+  houseSpecs.push({x:-42-rr(0,4), z:z+rr(-3,3), w:rr(5,7), d:rr(5,7), h:rr(3,4.2), rot:rr(-0.3,0.3), o:{}});
+  houseSpecs.push({x:44+rr(0,4), z:z+rr(-3,3), w:rr(5,7), d:rr(5,7), h:rr(3,4.2), rot:Math.PI+rr(-0.3,0.3), o:{}});
+}
+// 漁村小屋（海邊）
+houseSpecs.push({x:-24, z:-36, w:5, d:4.5, h:3, rot:0, o:{wins:1, awning:true}});
+houseSpecs.push({x:-32, z:-34, w:4.5, d:4, h:2.8, rot:0.2, o:{wins:1}});
+houseSpecs.push({x:28, z:-36, w:5, d:4.5, h:3, rot:0, o:{wins:1, awning:true}});
+houseSpecs.push({x:36, z:-33, w:4.5, d:4, h:2.8, rot:-0.2, o:{wins:1}});
+// 廣場周邊
+houseSpecs.push({x:40, z:22, w:7, d:6, h:4, rot:-Math.PI/2, o:{stairs:'L', awning:true}});
+houseSpecs.push({x:72, z:28, w:7, d:6, h:4, rot:Math.PI/2, o:{stairs:'R'}});
+houseSpecs.push({x:72, z:44, w:6, d:6, h:3.8, rot:Math.PI/2, o:{awning:true}});
+// 睚魯家後方遠景
+for(let x=-40; x<=40; x+=16){ houseSpecs.push({x:x+rr(-2,2), z:122+rr(0,6), w:rr(5,8), d:rr(5,7), h:rr(3.2,4.5), rot:Math.PI, o:{}}); }
+houseSpecs.forEach(s=>makeHouse(s.x,s.z,s.w,s.d,s.h,s.rot,s.o));
+
+/* ---------- 會堂（Synagogue）與廣場 ---------- */
+{
+  const g = new THREE.Group(); g.position.set(55, 0, 52);
+  box(g, MAT.stone, 0, 0.6, 0, 20, 1.2, 12);
+  box(g, MAT.stone, 0, 4.2, 0, 17, 7, 10);
+  box(g, MAT.stone, 0, 8.1, 0, 17.6, 0.6, 10.6);
+  for(let i=-3;i<=3;i++){ cyl(g, MAT.stone, i*2.4, 4.6, -6.4, 0.45, 6.8); cyl(g, MAT.stone, i*2.4, 7.9, -6.4, 0.6, 0.35); }
+  box(g, MAT.stone, 0, 8.2, -6.4, 17.6, 0.6, 1.4);
+  for(let i=0;i<4;i++) box(g, MAT.stone, 0, 0.15+i*0.3, -8.2-i*0.5, 14, 0.3, 0.5);
+  box(g, MAT.dark, 0, 2.4, -5.02, 2.4, 3.6, 0.1, false);
+  box(g, MAT.wood, -0.6, 2.4, -5.06, 1.1, 3.4, 0.08); box(g, MAT.wood, 0.6, 2.4, -5.06, 1.1, 3.4, 0.08);
+  // 窗
+  [-5, 5].forEach(x=>{ box(g, MAT.dark, x, 5.5, -5.02, 1.2, 1.6, 0.1, false); });
+  scene.add(g);
+  addCollider(45, 44, 65, 60); mapRects.push({x:45, z:44, w:20, d:16});
+  // 廣場中央水池
+  cyl(scene, MAT.stone, 55, 0.4, 32, 2.2, 0.8);
+  cyl(scene, new THREE.MeshStandardMaterial({ color:0x2a5a6a, roughness:0.2, metalness:0.1 }), 55, 0.78, 32, 1.9, 0.1);
+  addCollider(52.6, 29.6, 57.4, 34.4);
+}
+
+/* ---------- 市集攤位 ---------- */
+const goodsMats = [0xc0392b, 0xe67e22, 0xf1c40f, 0x8e44ad, 0x27ae60, 0x2c3e50, 0xecf0f1, 0x7f5a3a].map(c=>new THREE.MeshStandardMaterial({ color:c, roughness:0.8 }));
+const sphGeo = new THREE.SphereGeometry(1, 10, 8);
+function makeStall(x, z, rotY){
+  const g = new THREE.Group(); g.position.set(x,0,z); g.rotation.y = rotY;
+  box(g, MAT.wood, 0, 0.85, 0, 2.6, 0.12, 1.2);
+  [-1.15, 1.15].forEach(px=>[-0.5,0.5].forEach(pz=>cyl(g, MAT.wood, px, 0.42, pz, 0.05, 0.84)));
+  [-1.2, 1.2].forEach(px=>[-0.65,0.65].forEach(pz=>cyl(g, MAT.wood, px, 1.4, pz, 0.045, 2.8)));
+  const aw = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 1.8), pick(MAT.awnings));
+  aw.position.set(0, 2.75, 0); aw.rotation.x = -Math.PI/2 + 0.18; aw.castShadow = true; g.add(aw);
+  // 貨物：水果籃、布匹、陶罐
+  const kind = Math.floor(rnd()*3);
+  if(kind===0){ for(let i=0;i<10;i++){ const m = new THREE.Mesh(sphGeo, pick(goodsMats)); m.scale.setScalar(0.1); m.position.set(rr(-1,1), 0.98, rr(-0.4,0.4)); m.castShadow=true; g.add(m);} }
+  else if(kind===1){ for(let i=0;i<4;i++){ box(g, pick(goodsMats), -0.9+i*0.6, 1.02, 0, 0.5, 0.22, 0.9); } }
+  else { for(let i=0;i<3;i++){ cyl(g, MAT.clay, -0.8+i*0.8, 1.15, 0, 0.22, 0.5); } cyl(g, MAT.clay, 1.6, 0.35, 0.9, 0.3, 0.7); }
+  scene.add(g);
+  addCollider(x-1.5, z-0.8, x+1.5, z+0.8);
+}
+const stallSpots = [];
+for(let z=8; z<=34; z+=5.2){ stallSpots.push([-6.3, z, Math.PI/2]); stallSpots.push([6.3, z, -Math.PI/2]); }
+for(let z=12; z<=30; z+=6){ stallSpots.push([-9.6, z, Math.PI/2]); stallSpots.push([9.6, z, -Math.PI/2]); }
+stallSpots.push([48, 34, 0], [62, 34, 0], [55, 22, Math.PI]);
+stallSpots.forEach(s=>makeStall(...s));
+
+/* ---------- 睚魯的家：庭院 + 主屋 + 雅緻室內 ---------- */
+const JAIRUS = { gate: V3(0,0,89.5), court: V3(0,0,96), door: V3(0,0,101.4), bedroom: V3(4.2,0,105.5), bed: V3(5.6,0,107.2), table: V3(-3.5,0,105) };
+const lamps = [];
+{
+  const g = new THREE.Group(); scene.add(g);
+  const stucco = MAT.stucco[2];
+  // 庭院圍牆（含大門開口）
+  const wall = (x,z,w,d)=>{ box(g, stucco, x, 1.15, z, w, 2.3, d); box(g, MAT.stone, x, 0.3, z, w+0.1, 0.6, d+0.1); addCollider(x-w/2, z-d/2, x+w/2, z+d/2); };
+  wall(-6.5, 89.5, 9, 0.5); wall(6.5, 89.5, 9, 0.5);
+  wall(-10.75, 100, 0.5, 21.5); wall(10.75, 100, 0.5, 21.5);
+  // 門柱 + 門楣
+  cyl(g, MAT.stone, -2.1, 1.4, 89.5, 0.3, 2.8); cyl(g, MAT.stone, 2.1, 1.4, 89.5, 0.3, 2.8);
+  box(g, MAT.wood, 0, 2.95, 89.5, 4.8, 0.3, 0.5);
+  // 主屋外殼（四面牆，前牆留門洞），地板、屋頂
+  const W = 14, D = 8.5, H = 4.6, cz = 105.5;
+  const w4 = (x,z,w,d)=>{ box(g, stucco, x, H/2, z, w, H, d); addCollider(x-w/2, z-d/2, x+w/2, z+d/2); };
+  w4(-4.25, cz-D/2, W/2-1.5, 0.5); w4(4.25, cz-D/2, W/2-1.5, 0.5);   // 前牆左右（門洞 x∈[-1.5,1.5]）
+  w4(0, cz+D/2, W, 0.5); w4(-W/2, cz, 0.5, D); w4(W/2, cz, 0.5, D);
+  box(g, MAT.wood, 0, 2.55, cz-D/2, 3.4, 0.3, 0.7);                   // 門楣
+  box(g, stucco, 0, 2.7+ (H-2.7)/2, cz-D/2, 3.2, H-2.7, 0.5);          // 門上牆
+  box(g, MAT.stone, 0, 0.3, cz-D/2, W, 0.6, 0.6);
+  box(g, MAT.wood, 0, H+0.1, cz, W+0.4, 0.3, D+0.4);                   // 屋頂
+  [[0,cz-D/2],[0,cz+D/2]].forEach(([x,z])=>box(g, stucco, x, H+0.55, z, W+0.4, 0.6, 0.3));
+  [[-W/2-0.05,cz],[W/2+0.05,cz]].forEach(([x,z])=>box(g, stucco, x, H+0.55, z, 0.3, 0.6, D+0.4));
+  for(let bx=-W/2+0.8; bx<W/2; bx+=1.1) cyl(g, MAT.wood, bx, H-0.3, cz-D/2-0.25, 0.1, 0.6, Math.PI/2);
+  // 室內隔牆（臥室在右側 x>1.5）
+  w4(1.5, cz+1.2, 0.4, D-2.4-1.5);
+  // 外置石階
+  for(let i=0;i<10;i++) box(g, MAT.stone, -W/2-0.55, (H/10)*(i+0.5), cz-D*0.4+ (D*0.8/10)*(i+0.5), 1.0, H/10, D*0.8/10);
+  // 地板 + 地毯
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W-0.5, D-0.5), MAT.slabs); floor.rotation.x=-Math.PI/2; floor.position.set(0,0.03,cz); floor.receiveShadow=true; g.add(floor);
+  const rug1 = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), MAT.rug); rug1.rotation.x=-Math.PI/2; rug1.position.set(-3.5,0.05,cz); rug1.receiveShadow=true; g.add(rug1);
+  const rug2 = new THREE.Mesh(new THREE.PlaneGeometry(3, 2.2), MAT.rug); rug2.rotation.x=-Math.PI/2; rug2.position.set(4.5,0.05,cz+0.5); rug2.receiveShadow=true; g.add(rug2);
+  // 木桌、木凳
+  box(g, MAT.wood, -3.5, 0.72, cz-0.5, 2.2, 0.1, 1.1);
+  [[-4.4,cz-1],[-2.6,cz-1],[-4.4,cz],[-2.6,cz]].forEach(([x,z])=>cyl(g, MAT.wood, x, 0.35, z, 0.06, 0.7));
+  [[-3.5,cz-1.6],[-3.5,cz+0.6],[-5.2,cz-0.5]].forEach(([x,z])=>{ cyl(g, MAT.wood, x, 0.42, z, 0.28, 0.08); cyl(g, MAT.wood, x, 0.2, z, 0.05, 0.4); });
+  cyl(g, MAT.clay, -3.2, 0.9, cz-0.6, 0.14, 0.26); cyl(g, MAT.clay, -4.0, 0.84, cz-0.3, 0.2, 0.12);
+  cyl(g, MAT.clay, -6.2, 0.45, cz+3, 0.4, 0.9); cyl(g, MAT.clay, -5.3, 0.4, cz+3.2, 0.32, 0.8);
+  // 臥室病榻
+  const bx = JAIRUS.bed.x, bz = JAIRUS.bed.z;
+  box(g, MAT.wood, bx, 0.3, bz, 1.3, 0.14, 2.3);
+  [[-0.6,-1.05],[0.6,-1.05],[-0.6,1.05],[0.6,1.05]].forEach(([dx,dz])=>box(g, MAT.wood, bx+dx, 0.17, bz+dz, 0.1, 0.34, 0.1));
+  box(g, new THREE.MeshStandardMaterial({ color:0xe9dcc2, roughness:1 }), bx, 0.45, bz, 1.2, 0.16, 2.2);
+  box(g, new THREE.MeshStandardMaterial({ color:0x8a4a4a, roughness:1 }), bx, 0.56, bz+0.3, 1.15, 0.08, 1.4);
+  box(g, new THREE.MeshStandardMaterial({ color:0xf3ecd8, roughness:1 }), bx, 0.57, bz-0.85, 0.6, 0.12, 0.4);
+  addCollider(bx-0.7, bz-1.2, bx+0.7, bz+1.2);
+  // 油燈（含點光源）
+  const lampAt = (x,y,z)=>{
+    cyl(g, MAT.brass, x, y, z, 0.12, 0.08); cyl(g, MAT.brass, x, y+0.06, z, 0.05, 0.08);
+    const f = new THREE.Mesh(sphGeo, MAT.flame); f.scale.set(0.035,0.06,0.035); f.position.set(x+0.07, y+0.12, z); g.add(f);
+    const pl = new THREE.PointLight(0xffb060, 2.2, 7, 2); pl.position.set(x, y+0.3, z); g.add(pl);
+    lamps.push({ flame:f, light:pl, base:2.2 });
+  };
+  lampAt(-3.5, 0.82, cz-0.5); lampAt(5.9, 1.0, cz-1.2); lampAt(-6.3, 1.4, cz+1.5);
+  cyl(g, MAT.wood, 5.9, 0.48, cz-1.2, 0.25, 0.06); cyl(g, MAT.wood, 5.9, 0.25, cz-1.2, 0.04, 0.5);
+  // 牆上的窗（透光）
+  box(g, MAT.dark, 5.5, 3.2, cz+D/2-0.2, 0.9, 0.8, 0.2, false);
+  box(g, MAT.dark, -W/2+0.2, 3.2, cz-1, 0.2, 0.8, 0.9, false);
+  // 庭院：無花果樹、石凳、烤爐
+  cyl(g, MAT.wood, -6, 1.3, 94, 0.22, 2.6);
+  [[ -6,3.2,94 ],[ -5.2,3.6,94.6 ],[ -6.8,3.5,93.5 ],[ -6,4.0,94.3 ]].forEach(([x,y,z])=>{ const m=new THREE.Mesh(sphGeo, MAT.leaf); m.scale.setScalar(1.5); m.position.set(x,y,z); m.castShadow=true; g.add(m); });
+  addCollider(-6.4, 93.6, -5.6, 94.4);
+  box(g, MAT.stone, 6.5, 0.3, 94, 2.4, 0.5, 0.7); addCollider(5.3, 93.6, 7.7, 94.4);
+  cyl(g, MAT.clay, 8, 0.6, 97, 0.7, 1.2); addCollider(7.3, 96.3, 8.7, 97.7);
+  mapRects.push({x:-7, z:101.2, w:14, d:8.5});
+}
+
+/* ---------- 樹木、船隻、碼頭 ---------- */
+function olive(x,z,s=1){
+  const g = new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(s);
+  cyl(g, MAT.wood, 0, 1.1, 0, 0.22, 2.2, 0, rr(-0.15,0.15));
+  cyl(g, MAT.wood, 0.4, 2.3, 0.2, 0.12, 1.4, 0.3, -0.6); cyl(g, MAT.wood, -0.4, 2.3, -0.2, 0.12, 1.4, -0.3, 0.6);
+  for(let i=0;i<5;i++){ const m = new THREE.Mesh(sphGeo, MAT.olive); m.scale.set(rr(1,1.5), rr(0.8,1.1), rr(1,1.5)); m.position.set(rr(-1,1), rr(2.6,3.6), rr(-1,1)); m.castShadow=true; g.add(m); }
+  scene.add(g); addCollider(x-0.4,z-0.4,x+0.4,z+0.4);
+}
+function palm(x,z){
+  const g = new THREE.Group(); g.position.set(x,0,z);
+  const t = cyl(g, MAT.wood, 0, 3, 0, 0.2, 6, 0, rr(-0.1,0.1));
+  for(let i=0;i<8;i++){ const f = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 3.2), MAT.leaf); f.position.set(0,6,0); f.rotation.y = i*Math.PI/4; f.rotation.x = -0.9; f.translateY(1.3); f.castShadow=true; f.material.side=THREE.DoubleSide; g.add(f); }
+  scene.add(g); addCollider(x-0.3,z-0.3,x+0.3,z+0.3);
+}
+[[-18,-25],[20,-22],[-35,5],[36,12],[-20,45],[20,48],[-34,70],[34,72],[70,18],[-14,88],[16,86],[60,62]].forEach(([x,z])=>olive(x,z,rr(0.8,1.3)));
+[[-10,-38],[12,-40],[-40,-30],[42,-32],[-52,-36],[55,-30]].forEach(([x,z])=>palm(x,z));
+function boat(x,z,rot){
+  const g = new THREE.Group(); g.position.set(x,-0.1,z); g.rotation.y = rot;
+  const hull = new THREE.Mesh(sphGeo, MAT.wood); hull.scale.set(1.1, 0.55, 3.0); hull.position.y = 0.2; hull.castShadow = true; g.add(hull);
+  const inner = new THREE.Mesh(sphGeo, MAT.dark); inner.scale.set(0.9, 0.4, 2.7); inner.position.y = 0.45; g.add(inner);
+  cyl(g, MAT.wood, 0, 2.2, 0, 0.07, 4);
+  const sail = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.6), new THREE.MeshStandardMaterial({ color:0xe8dcc0, side:THREE.DoubleSide, roughness:1 })); sail.position.set(0, 2.6, 0.2); sail.rotation.y = 0.2; g.add(sail);
+  scene.add(g);
+}
+boat(-8, -58, 0.3); boat(14, -62, -0.4); boat(-26, -66, 1.0); boat(38, -70, 2.6);
+// 小碼頭
+box(scene, MAT.wood, 4, -0.1, -58, 3, 0.25, 16);
+for(let z=-52; z>=-64; z-=4){ cyl(scene, MAT.wood, 2.6, -0.6, z, 0.12, 1.4); cyl(scene, MAT.wood, 5.4, -0.6, z, 0.12, 1.4); }
+/* =====================================================================
+   角色建模：立體五官、鬍子、蓋菲耶頭巾、長袍、衣裳繸子(Tzitzit)
+   每個角色以 5 個合併網格（身體、左右臂、左右腿）渲染，共用一個 vertexColors 材質
+   ===================================================================== */
+const humanMat = new THREE.MeshStandardMaterial({ vertexColors:true, roughness:0.88, metalness:0 });
+const _col = new THREE.Color(), _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler();
+const G = {
+  sph: new THREE.SphereGeometry(1, 12, 9),
+  sphLo: new THREE.SphereGeometry(1, 8, 6),
+  cyl: new THREE.CylinderGeometry(1, 1, 1, 10),
+  tunic: new THREE.CylinderGeometry(0.25, 0.37, 1.3, 16),
+  mantle: new THREE.CylinderGeometry(0.29, 0.40, 0.78, 16),
+  sleeve: new THREE.CylinderGeometry(0.065, 0.1, 0.62, 10),
+  tassel: new THREE.CylinderGeometry(0.012, 0.032, 0.08, 6),
+  box: new THREE.BoxGeometry(1,1,1),
+  cone: new THREE.ConeGeometry(1, 1, 8),
+  torus: new THREE.TorusGeometry(1, 0.13, 6, 16),
+  capTop: new THREE.SphereGeometry(1, 14, 8, 0, Math.PI*2, 0, Math.PI*0.5),
+  capVeil: new THREE.SphereGeometry(1, 14, 8, 0, Math.PI*2, 0, Math.PI*0.56),
+  hairTop: new THREE.SphereGeometry(1, 12, 6, 0, Math.PI*2, 0, Math.PI*0.38),
+  hairBack: new THREE.SphereGeometry(1, 12, 8, Math.PI, Math.PI, 0, Math.PI*0.72),
+};
+const SKINS = [0xd4a981, 0xc9956b, 0xb8835a, 0xa6714a, 0x8f5f3c];
+const HAIRS = [0x1a0f08, 0x2b1a0e, 0x3d2614, 0x5a3a1e, 0x6e6a66, 0xa09a90];
+const TUNICS = [0xd9c9a3, 0xcbb58c, 0xb09a72, 0x8f7a5a, 0x7a6a7a, 0x9b5a4a, 0x5f6f88, 0x6b7a5a, 0xe6dcc6, 0x4e4a52];
+const MANTLES = [0x8a3a2a, 0x3a4a7a, 0x5a4a3a, 0x7a7060, 0x2f4f4f, 0x6a3a5a, null, null];
+const KEFFS = [0xf2ecdd, 0xe8dcc0, 0xd8d0c8, 0xb8a888, 0x4a4a5a, 0x8a2a2a];
+const ACCENTS = [0x1b3f9e, 0x8a2a2a, 0x3a3a3a, 0xd9b25c];
+const TECHELET = 0x1b3f9e, WHITE = 0xf2ecd8;
+
+function buildHuman(o){
+  const B = { body:[], armL:[], armR:[], legL:[], legR:[] };
+  const P = (b, geo, hex, x,y,z, rx=0,ry=0,rz=0, sx=1,sy=sx,sz=sx)=>{
+    const g = geo.clone();
+    _m4.compose(V3(x,y,z), _q.setFromEuler(_e.set(rx,ry,rz)), V3(sx,sy,sz)); g.applyMatrix4(_m4);
+    const n = g.attributes.position.count, c = new Float32Array(n*3); _col.set(hex);
+    for(let i=0;i<n;i++){ c[i*3]=_col.r; c[i*3+1]=_col.g; c[i*3+2]=_col.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(c,3)); B[b].push(g);
+  };
+  const male = o.gender !== 'f';
+  const skin = o.skin, hair = o.hair, tunic = o.tunic, mantle = o.mantle, accent = o.accent ?? pick(ACCENTS);
+  // --- 腿與涼鞋（樞軸在髖部）
+  for(const [b,s] of [['legL',-1],['legR',1]]){
+    P(b, G.cyl, skin, 0, -0.4, 0, 0,0,0, 0.075, 0.8, 0.075);
+    P(b, G.box, 0x5a3a22, 0, -0.82, 0.06, 0,0,0, 0.13, 0.06, 0.27);
+    P(b, G.box, 0x7a5a3a, 0, -0.78, 0.1, 0,0,0, 0.135, 0.02, 0.03);
+  }
+  // --- 長袍 Tunic
+  P('body', G.tunic, tunic, 0, 0.77, 0);
+  P('body', G.cyl, accent, 0, 0.15, 0, 0,0,0, 0.378, 0.07, 0.378);            // 袍邊飾帶
+  P('body', G.sph, tunic, 0, 1.42, 0, 0,0,0, 0.27, 0.2, 0.22);                 // 肩
+  P('body', G.cyl, 0x3b2616, 0, 1.02, 0, 0,0,0, 0.31, 0.09, 0.31);             // 腰帶
+  P('body', G.box, 0x2a1a10, 0, 1.0, 0.3, 0,0,0, 0.08, 0.12, 0.04);
+  // --- 外袍 Mantle（有則繸子綁於外袍四角，否則綁於長袍下襬）
+  let hemY = 0.16, hemR = 0.375;
+  if(mantle){
+    P('body', G.mantle, mantle, 0, 1.05, 0);
+    P('body', G.cyl, accent, 0, 0.68, 0, 0,0,0, 0.405, 0.05, 0.405);
+    P('body', G.cyl, accent, 0, 1.2, 0, 0,0,0, 0.335, 0.05, 0.335);
+    hemY = 0.66; hemR = 0.40;
+  }
+  // --- 衣裳繸子 Tzitzit（民數記 15:38：藍色細帶子 + 穗子）
+  for(let k=0;k<4;k++){
+    const a = Math.PI/4 + k*Math.PI/2, x = Math.cos(a)*hemR, z = Math.sin(a)*hemR;
+    P('body', G.sphLo, WHITE, x, hemY, z, 0,0,0, 0.028);                              // 繩結
+    P('body', G.cyl, TECHELET, x+0.012, hemY-0.09, z, 0.08,0,0.05, 0.009, 0.16, 0.009); // 藍線
+    P('body', G.cyl, WHITE, x-0.012, hemY-0.09, z+0.008, -0.06,0,-0.04, 0.009, 0.16, 0.009);
+    P('body', G.cyl, WHITE, x, hemY-0.09, z-0.012, 0.03,0,0.06, 0.009, 0.16, 0.009);
+    P('body', G.tassel, WHITE, x, hemY-0.2, z);                                          // 穗子
+    P('body', G.tassel, TECHELET, x+0.01, hemY-0.19, z-0.01, 0,0,0, 0.7);
+  }
+  // --- 頸、頭部、五官
+  P('body', G.cyl, skin, 0, 1.52, 0, 0,0,0, 0.065, 0.14, 0.065);
+  P('body', G.sph, skin, 0, 1.72, 0, 0,0,0, 0.13, 0.146, 0.133);
+  for(const s of [-1,1]){
+    P('body', G.sphLo, skin, s*0.128, 1.72, 0, 0,0,0, 0.012, 0.024, 0.018);                 // 耳
+    P('body', G.sphLo, 0xf4f0ea, s*0.047, 1.745, 0.112, 0,0,0, 0.024, 0.017, 0.012);        // 眼白
+    P('body', G.sphLo, 0x1a0f08, s*0.047, 1.745, 0.124, 0,0,0, 0.012);                      // 瞳孔
+    P('body', G.box, hair, s*0.047, 1.782, 0.118, 0,0,s*0.18, 0.056, 0.012, 0.02);          // 眉
+  }
+  P('body', G.cone, skin, 0, 1.705, 0.138, Math.PI/2,0,0, 0.024, 0.07, 0.024);              // 鼻
+  const beard = male && o.beard !== 'none';
+  P('body', G.box, 0x6b3a2e, 0, 1.665, beard ? 0.152 : 0.128, 0,0,0, 0.05, 0.01, 0.012);  // 口
+  if(beard){
+    P('body', G.sph, hair, 0, 1.63, 0.035, 0,0,0, 0.126, 0.12, 0.114);
+    P('body', G.box, hair, 0, 1.69, 0.148, 0,0,0, 0.09, 0.022, 0.03);
+    if(o.beard === 'long') P('body', G.cone, hair, 0, 1.45, 0.07, Math.PI,0,0, 0.09, 0.24, 0.07);
+  }
+  // --- 頭髮 / 頭巾
+  P('body', G.hairTop, hair, 0, 1.742, -0.01, 0,0,0, 0.139, 0.139, 0.139);
+  P('body', G.hairBack, hair, 0, 1.742, -0.01, 0,0,0, 0.139, 0.139, 0.139);
+  if(!male){ P('body', G.cyl, hair, 0, 1.45, -0.12, 0.15,0,0, 0.08, 0.45, 0.06); }       // 長髮
+  const head = o.head || (male ? 'keffiyeh' : 'veil');
+  const kc = o.keff ?? pick(KEFFS);
+  if(head === 'keffiyeh' || head === 'shawl'){
+    const long = head === 'shawl';
+    P('body', G.capTop, kc, 0, 1.75, -0.005, 0,0,0, 0.153);
+    P('body', G.box, kc, 0, long ? 1.42 : 1.56, -0.135, 0.15,0,0, 0.32, long ? 0.7 : 0.42, 0.05);
+    for(const s of [-1,1]) P('body', G.box, kc, s*0.152, long ? 1.45 : 1.6, -0.03, 0,0,-s*0.08, 0.05, long ? 0.62 : 0.38, 0.24);
+    if(!long) P('body', G.torus, o.agal ?? 0x111111, 0, 1.81, -0.005, Math.PI/2,0,0, 0.152, 0.152, 0.152);
+    else P('body', G.box, accent, 0, 1.77, 0.14, 0.3,0,0, 0.3, 0.02, 0.03);
+  } else if(head === 'veil'){
+    P('body', G.capVeil, kc, 0, 1.75, -0.005, 0,0,0, 0.152);
+    P('body', G.box, kc, 0, 1.38, -0.16, 0.12,0,0, 0.34, 0.72, 0.05);
+    for(const s of [-1,1]) P('body', G.box, kc, s*0.158, 1.42, -0.04, 0,0,-s*0.06, 0.05, 0.62, 0.26);
+    P('body', G.torus, accent, 0, 1.80, -0.005, Math.PI/2,0,0, 0.152, 0.152, 0.152);
+  }
+  // --- 手臂（樞軸在肩）
+  for(const [b,s] of [['armL',-1],['armR',1]]){
+    P(b, G.sleeve, tunic, 0, -0.31, 0);
+    if(mantle) P(b, G.cyl, mantle, 0, -0.14, 0, 0,0,0, 0.11, 0.3, 0.11);
+    P(b, G.sphLo, skin, 0, -0.66, 0, 0,0,0, 0.052);
+  }
+  if(o.staff) P('armR', G.cyl, 0x6b4a2a, 0.09, -0.2, 0.06, 0,0,0, 0.025, 1.9, 0.025);
+  // 合併
+  const g = new THREE.Group(), parts = {};
+  for(const k in B){
+    const m = new THREE.Mesh(mergeGeometries(B[k], false), humanMat);
+    m.castShadow = o.shadow ?? true; m.receiveShadow = false;
+    if(k==='armL') m.position.set(-0.29, 1.42, 0); if(k==='armR') m.position.set(0.29, 1.42, 0);
+    if(k==='legL') m.position.set(-0.1, 0.85, 0); if(k==='legR') m.position.set(0.1, 0.85, 0);
+    parts[k] = m; g.add(m);
+  }
+  g.scale.setScalar(o.scale ?? 1);
+  return { g, parts };
+}
+
+/* ---------- 羊 ---------- */
+function buildSheep(){
+  const B = { body:[], legA:[], legB:[] };
+  const P = (b, geo, hex, x,y,z, rx=0,ry=0,rz=0, sx=1,sy=sx,sz=sx)=>{
+    const g = geo.clone(); _m4.compose(V3(x,y,z), _q.setFromEuler(_e.set(rx,ry,rz)), V3(sx,sy,sz)); g.applyMatrix4(_m4);
+    const n = g.attributes.position.count, c = new Float32Array(n*3); _col.set(hex);
+    for(let i=0;i<n;i++){ c[i*3]=_col.r; c[i*3+1]=_col.g; c[i*3+2]=_col.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(c,3)); B[b].push(g);
+  };
+  const wool = pick([0xe9e2d3, 0xe3dac6, 0xd9cfbb, 0xefe9dc]), dark = pick([0x3a2a20, 0x2a1e16, 0x5a4a3a]);
+  P('body', G.sph, wool, 0, 0.62, 0, 0,0,0, 0.36, 0.34, 0.55);
+  for(let i=0;i<6;i++) P('body', G.sphLo, wool, rr(-0.2,0.2), rr(0.55,0.85), rr(-0.4,0.35), 0,0,0, rr(0.14,0.22));
+  P('body', G.sph, dark, 0, 0.68, 0.6, 0,0,0, 0.12, 0.13, 0.17);
+  P('body', G.sphLo, wool, 0, 0.8, 0.5, 0,0,0, 0.13, 0.09, 0.12);
+  for(const s of [-1,1]){ P('body', G.box, dark, s*0.12, 0.72, 0.52, 0,0,s*0.5, 0.05, 0.12, 0.04); P('body', G.sphLo, 0x111111, s*0.055, 0.72, 0.74, 0,0,0, 0.02); }
+  P('body', G.sphLo, wool, 0, 0.62, -0.56, 0,0,0, 0.07, 0.1, 0.06);
+  const legs = [['legA',-1,1],['legB',1,1],['legB',-1,-1],['legA',1,-1]];
+  for(const [b,sx,sz] of legs){ P(b, G.cyl, dark, sx*0.17, -0.2, sz*0.28, 0,0,0, 0.045, 0.42, 0.045); P(b, G.box, 0x1a1210, sx*0.17, -0.42, sz*0.28, 0,0,0, 0.08, 0.05, 0.1); }
+  const g = new THREE.Group(), parts = {};
+  for(const k in B){ const m = new THREE.Mesh(mergeGeometries(B[k], false), humanMat); m.castShadow = true; if(k!=='body') m.position.y = 0.42; parts[k]=m; g.add(m); }
+  return { g, parts };
+}
+
+/* =====================================================================
+   實體系統（移動、動畫、行為）
+   ===================================================================== */
+const entities = [], npcs = [], sheepList = [];
+let gameTime = 0;
+class Ent {
+  constructor(kind, o={}){
+    this.kind = kind; this.name = o.name || '';
+    const built = kind === 'sheep' ? buildSheep() : buildHuman(o);
+    this.g = built.g; this.parts = built.parts; this.pos = this.g.position;
+    this.yaw = o.yaw ?? rr(0, Math.PI*2); this.g.rotation.y = this.yaw;
+    this.phase = rnd()*6; this.speed = 0; this.walkSpeed = o.walkSpeed ?? (kind==='sheep' ? 0.9 : rr(1.1,1.6));
+    this.radius = kind === 'sheep' ? 0.45 : 0.38; this.movable = true; this.solid = true;
+    this.target = null; this.onArrive = null; this.behavior = o.behavior || 'idle'; this.zone = o.zone || null; this.wait = rr(0,3);
+    this.kneel = 0; this.kneelT = 0; this.handUp = 0; this.handT = 0; this.lie = 0; this.wail = 0; this.visible = true;
+    this.leader = null; this.offset = null; this.pushed = new THREE.Vector3();
+    this.scale = o.scale ?? 1;
+    scene.add(this.g); entities.push(this);
+  }
+  setPos(x,z){ this.pos.set(x, 0, z); }
+  face(yaw){ this.yaw = yaw; this.g.rotation.y = yaw; }
+  lookAt(p){ this.face(Math.atan2(p.x - this.pos.x, p.z - this.pos.z)); }
+  goTo(x, z, speed){ return new Promise(res=>{ this.target = V3(x,0,z); this.goSpeed = speed || this.walkSpeed; this.onArrive = res; }); }
+  dist(e){ return Math.hypot(e.pos.x - this.pos.x, e.pos.z - this.pos.z); }
+  update(dt){
+    // 行為
+    if(this.behavior === 'wander' && !this.target){
+      this.wait -= dt;
+      if(this.wait <= 0 && this.zone){ const z = this.zone; this.target = V3(rr(z.x1,z.x2), 0, rr(z.z1,z.z2)); this.goSpeed = this.walkSpeed; this.onArrive = ()=>{ this.wait = rr(1.5, 6); }; }
+    } else if(this.behavior === 'follow' && this.leader){
+      const L = this.leader, o = this.offset;
+      const fx = Math.sin(L.yaw), fz = Math.cos(L.yaw);
+      const tx = L.pos.x - fx*o.back + fz*o.side, tz = L.pos.z - fz*o.back - fx*o.side;
+      const d = Math.hypot(tx - this.pos.x, tz - this.pos.z);
+      if(d > 1.0){ this.target = V3(tx,0,tz); this.goSpeed = Math.min(5.5, Math.max(L.speed*1.08, 1.4) + d*0.4); this.onArrive = null; }
+      else if(d < 0.5){ this.target = null; if(L.speed < 0.1) this.yaw = lerpAngle(this.yaw, L.yaw, dt*3); }
+    } else if(this.behavior === 'ring' && this.leader){
+      const L = this.leader, a = this.ringAngle + gameTime*0.1, r = this.ringR;
+      const tx = L.pos.x + Math.cos(a)*r, tz = L.pos.z + Math.sin(a)*r;
+      const d = Math.hypot(tx - this.pos.x, tz - this.pos.z);
+      if(d > 0.6){ this.target = V3(tx,0,tz); this.goSpeed = 1.2 + d*0.6; this.onArrive = null; } else { this.target = null; this.lookAt(L.pos); }
+    }
+    // 移動
+    this.speed = 0;
+    if(this.target){
+      const dx = this.target.x - this.pos.x, dz = this.target.z - this.pos.z, d = Math.hypot(dx,dz);
+      if(d < 0.15){ this.target = null; const f = this.onArrive; this.onArrive = null; f && f(); }
+      else {
+        const sp = Math.min(this.goSpeed || this.walkSpeed, d/dt);
+        this.pos.x += dx/d*sp*dt; this.pos.z += dz/d*sp*dt; this.speed = sp;
+        this.yaw = lerpAngle(this.yaw, Math.atan2(dx,dz), Math.min(1, dt*8));
+      }
+    }
+    if(this.pushed.lengthSq() > 0){ this.pos.add(this.pushed); this.pushed.set(0,0,0); }
+    this.g.rotation.y = this.yaw;
+    this.animate(dt);
+  }
+  animate(dt){
+    const p = this.parts, walking = this.speed > 0.05;
+    if(this.kind === 'sheep'){
+      if(walking) this.phase += dt*this.speed*4.5;
+      const s = walking ? Math.sin(this.phase)*0.6 : 0;
+      p.legA.rotation.x = lerp(p.legA.rotation.x, s, 0.3); p.legB.rotation.x = lerp(p.legB.rotation.x, -s, 0.3);
+      p.body.position.y = walking ? Math.abs(Math.sin(this.phase))*0.04 : 0;
+      if(!walking && this.graze === undefined) this.graze = rnd()*10;
+      p.body.rotation.x = walking ? 0 : (Math.sin(gameTime*0.7 + this.phase) > 0.6 ? 0.25 : 0);
+      return;
+    }
+    if(walking) this.phase += dt * (2.0 + this.speed*2.2);
+    const sw = walking ? Math.sin(this.phase) : 0, amp = Math.min(0.6, 0.25 + this.speed*0.12);
+    const idle = Math.sin(gameTime*1.3 + this.phase)*0.04;
+    // 跪拜 / 舉手 / 哀哭 的過渡
+    this.kneel = lerp(this.kneel, this.kneelT, Math.min(1, dt*3));
+    this.handUp = lerp(this.handUp, this.handT, Math.min(1, dt*5));
+    const k = this.kneel, h = this.handUp, w = this.wail;
+    p.legL.rotation.x = lerp(sw*amp, -1.55, k); p.legR.rotation.x = lerp(-sw*amp, -1.55, k);
+    p.armL.rotation.x = lerp(-sw*amp*0.8 + idle, 0.9, k); p.armR.rotation.x = lerp(sw*amp*0.8 - idle, 0.9, k);
+    p.armL.rotation.z = 0.08 + w*Math.sin(gameTime*4+this.phase)*0.3; p.armR.rotation.z = -0.08 - w*Math.sin(gameTime*4+this.phase)*0.3;
+    if(h > 0.01){ p.armR.rotation.x = lerp(p.armR.rotation.x, -2.6, h); p.armR.rotation.z = lerp(p.armR.rotation.z, 0.2, h); }
+    if(w > 0.01){ p.armL.rotation.x = lerp(p.armL.rotation.x, -2.4, w); p.armR.rotation.x = lerp(p.armR.rotation.x, -2.4, w); }
+    p.body.rotation.x = k*0.95 + w*Math.sin(gameTime*3+this.phase)*0.12 + (walking ? 0.04 : 0);
+    p.body.position.y = -k*0.72 + (walking ? Math.abs(Math.sin(this.phase))*0.03 : 0);
+    p.armL.position.y = 1.42 + p.body.position.y; p.armR.position.y = 1.42 + p.body.position.y;
+    this.g.scale.setScalar(this.scale);
+    this.g.rotation.x = -Math.PI/2 * this.lie;
+    this.g.position.y = this.lie > 0 ? lerp(0, this.lieY ?? 0.5, this.lie) : 0;
+  }
+}
+function lerpAngle(a, b, t){ let d = b - a; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2; return a + d*t; }
+function randomHuman(extra={}){
+  const male = extra.gender ? extra.gender==='m' : rnd() > 0.42;
+  return Object.assign({ gender: male?'m':'f', skin: pick(SKINS), hair: pick(HAIRS), tunic: pick(TUNICS), mantle: male ? pick(MANTLES) : (rnd()>0.7 ? pick(MANTLES) : null),
+    beard: pick(['short','short','long']), scale: male ? rr(0.95,1.05) : rr(0.88,0.97), head: male ? (rnd()>0.15?'keffiyeh':'shawl') : 'veil' }, extra);
+}
+
+/* ---------- 主要角色 ---------- */
+const CH = {};
+CH.jesus = new Ent('human', { name:'耶穌', gender:'m', skin:0xc9956b, hair:0x3d2614, tunic:0xf1e9d6, mantle:0x3b5b9a, head:'shawl', keff:0xf5f0e5, beard:'short', accent:TECHELET, scale:1.02, walkSpeed:1.4 });
+CH.peter = new Ent('human', { name:'彼得', gender:'m', skin:0xb8835a, hair:0x2b1a0e, tunic:0x8f7a5a, mantle:0x8a3a2a, head:'keffiyeh', keff:0xe8dcc0, beard:'long', accent:0x3a3a3a, scale:1.06, walkSpeed:1.5 });
+CH.jairus = new Ent('human', { name:'睚魯', gender:'m', skin:0xc9956b, hair:0x6e6a66, tunic:0xe6dcc6, mantle:0x4a2a6a, head:'keffiyeh', keff:0xf2ecdd, agal:0xd9b25c, beard:'long', accent:0xd9b25c, scale:1.0, walkSpeed:1.5 });
+CH.woman = new Ent('human', { name:'血漏病婦人', gender:'f', skin:0xd8b394, hair:0x2b1a0e, tunic:0x9a9280, mantle:null, head:'veil', keff:0x7a7068, accent:0x3a3a3a, scale:0.95, walkSpeed:1.3 });
+CH.daughter = new Ent('human', { name:'睚魯的女兒', gender:'f', skin:0xd8b394, hair:0x1a0f08, tunic:0xf3ecd8, mantle:null, head:'none', accent:0x8a2a2a, scale:0.62 });
+CH.messenger = new Ent('human', randomHuman({ name:'報信的人', gender:'m', tunic:0x5f6f88, mantle:null, walkSpeed:3.2 }));
+CH.shepherd = new Ent('human', randomHuman({ name:'牧羊人', gender:'m', tunic:0x8f7a5a, mantle:0x5a4a3a, staff:true, head:'keffiyeh', keff:0xb8a888 }));
+CH.james = new Ent('human', randomHuman({ name:'雅各', gender:'m', tunic:0x6b7a5a, mantle:0x5a4a3a }));
+CH.john = new Ent('human', randomHuman({ name:'約翰', gender:'m', tunic:0xd9c9a3, mantle:0x2f4f4f, beard:'short' }));
+Object.values(CH).forEach(e=>{ e.main = true; });
+
+/* ---------- 175 位 NPC ---------- */
+const ZONES = {
+  market: {x1:-11, z1:5, x2:11, z2:36},
+  plaza: {x1:40, z1:20, x2:70, z2:44},
+  shore: {x1:-40, z1:-46, x2:40, z2:-30},
+  street: {x1:-4, z1:-40, x2:4, z2:85},
+  streetS: {x1:-4, z1:40, x2:4, z2:85},
+  westTown: {x1:-40, z1:-20, x2:-18, z2:80},
+  eastTown: {x1:18, z1:-20, x2:40, z2:45},
+  pasture: {x1:17.5, z1:47, x2:25, z2:66},
+  court: {x1:-7, z1:91, x2:7, z2:100},
+};
+const groups = { marketCrowd:[], wall:[], ring:[], mourners:[], wanderers:[] };
+function spawnNPC(zone, group, extra={}){
+  const e = new Ent('human', randomHuman(extra));
+  e.behavior = 'wander'; e.zone = zone; e.setPos(rr(zone.x1,zone.x2), rr(zone.z1,zone.z2));
+  npcs.push(e); if(group) groups[group].push(e); return e;
+}
+for(let i=0;i<26;i++) spawnNPC(ZONES.market, 'marketCrowd');
+for(let i=0;i<26;i++) spawnNPC(ZONES.streetS, 'wall');
+for(let i=0;i<14;i++) spawnNPC(ZONES.shore, 'ring');
+for(let i=0;i<6;i++) spawnNPC(ZONES.court, 'mourners', { gender:'f', keff:0x3a3a3a, tunic:0x4e4a52 });
+for(let i=0;i<40;i++) spawnNPC(ZONES.market, 'wanderers');
+for(let i=0;i<20;i++) spawnNPC(ZONES.plaza, 'wanderers');
+for(let i=0;i<16;i++) spawnNPC(ZONES.shore, 'wanderers');
+for(let i=0;i<12;i++) spawnNPC(ZONES.street, 'wanderers');
+for(let i=0;i<7;i++) spawnNPC(ZONES.westTown, 'wanderers');
+for(let i=0;i<4;i++) spawnNPC(ZONES.eastTown, 'wanderers');
+[CH.messenger, CH.shepherd, CH.james, CH.john].forEach(e=>npcs.push(e));
+groups.mourners.forEach(e=>{ e.behavior='idle'; e.lookAt(JAIRUS.door); });
+/* ---------- 14 隻羊 ---------- */
+for(let i=0;i<14;i++){ const s = new Ent('sheep'); s.behavior='wander'; s.zone=ZONES.pasture; s.setPos(rr(ZONES.pasture.x1,ZONES.pasture.x2), rr(ZONES.pasture.z1,ZONES.pasture.z2)); s.wait = rr(0,8); sheepList.push(s); }
+CH.shepherd.setPos(21, 56); CH.shepherd.behavior='wander'; CH.shepherd.zone=ZONES.pasture;
+/* =====================================================================
+   碰撞 / 玩家控制
+   ===================================================================== */
+const BOUNDS = { x1:-62, x2:86, z1:-50, z2:118 };
+function resolveCollision(p, r){
+  for(const c of colliders){
+    const cx = clamp(p.x, c.x1, c.x2), cz = clamp(p.z, c.z1, c.z2);
+    const dx = p.x - cx, dz = p.z - cz, d2 = dx*dx + dz*dz;
+    if(d2 < r*r){
+      if(d2 > 1e-6){ const d = Math.sqrt(d2), push = (r-d)/d; p.x += dx*push; p.z += dz*push; }
+      else {
+        const l = p.x - c.x1, rt = c.x2 - p.x, t = p.z - c.z1, b = c.z2 - p.z;
+        const m = Math.min(l, rt, t, b);
+        if(m === l) p.x = c.x1 - r; else if(m === rt) p.x = c.x2 + r;
+        else if(m === t) p.z = c.z1 - r; else p.z = c.z2 + r;
+      }
+    }
+  }
+  p.x = clamp(p.x, BOUNDS.x1, BOUNDS.x2); p.z = clamp(p.z, BOUNDS.z1, BOUNDS.z2);
+}
+const keys = {};
+let camMode = 2, camYaw = 0, camPitch = 0.18, dragYaw = 0, dragPitch = 0;
+addEventListener('keydown', e=>{
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  keys[e.key.toLowerCase()] = true;
+  if(e.key === ' ') onAction();
+  if(['1','2','3','4'].includes(e.key)) setCam(+e.key);
+});
+addEventListener('keyup', e=>{ keys[e.key.toLowerCase()] = false; });
+renderer.domElement.addEventListener('pointerdown', e=>{ dragging = true; lastX = e.clientX; lastY = e.clientY; });
+let dragging = false, lastX = 0, lastY = 0;
+addEventListener('pointerup', ()=> dragging = false);
+addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  dragYaw -= (e.clientX - lastX) * 0.005;
+  dragPitch = clamp(dragPitch + (e.clientY - lastY) * 0.003, -0.35, 0.55);
+  lastX = e.clientX; lastY = e.clientY;
+});
+addEventListener('wheel', e=>{ camDist = clamp(camDist + e.deltaY*0.004, 3, 12); }, { passive:true });
+let camDist = 5.6;
+$('views').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) setCam(+b.dataset.v); });
+function setCam(n){
+  camMode = n;
+  document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('on', +b.dataset.v === n));
+  $('letterbox').style.opacity = n === 4 ? 1 : 0;
+  if(n === 1) toast('上帝視角：俯瞰全城');
+  if(n === 2) toast('第三人稱跟隨');
+  if(n === 3) toast('第一人稱沉浸');
+  if(n === 4) toast('電影運鏡');
+}
+
+/* --- 虛擬搖桿 --- */
+let joyVec = {x:0, y:0}, joyActive = false;
+const joy = $('joy'), knob = $('knob');
+function joyStart(e){ joyActive = true; joyMove(e); }
+function joyMove(e){
+  if(!joyActive) return; e.preventDefault();
+  const r = joy.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const t = e.touches ? e.touches[0] : e;
+  let dx = t.clientX - cx, dy = t.clientY - cy, d = Math.hypot(dx, dy);
+  const max = r.width/2 - 22;
+  if(d > max){ dx = dx/d*max; dy = dy/d*max; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  joyVec.x = dx/max; joyVec.y = -dy/max;
+}
+function joyEnd(){ joyActive = false; joyVec.x = joyVec.y = 0; knob.style.transform = 'translate(0,0)'; }
+joy.addEventListener('touchstart', joyStart, { passive:false });
+joy.addEventListener('touchmove', joyMove, { passive:false });
+joy.addEventListener('touchend', joyEnd);
+$('mobAct').addEventListener('touchstart', e=>{ e.preventDefault(); onAction(); }, { passive:false });
+$('mobView2').addEventListener('touchstart', e=>{ e.preventDefault(); setCam(camMode % 4 + 1); }, { passive:false });
+
+let joystickVisible = false;
+function setupTouch(){
+  if(!isMobile) return;
+  joy.style.display = 'block'; $('mobBtns').style.display = 'flex';
+  document.querySelectorAll('#views button').forEach(b=>b.style.display = 'none');
+}
+
+/* =====================================================================
+   小地圖（GTA 風格旋轉雷達）
+   ===================================================================== */
+const mm = $('minimap'), mctx = mm.getContext('2d');
+const MINI_R = 170, MINI_SCALE = 2.35;
+const MARKERS = [
+  { name:'加利利海邊', x:0, z:-44, c:'#4fb3d9' },
+  { name:'市集', x:0, z:20, c:'#e8b34a' },
+  { name:'會堂廣場', x:55, z:34, c:'#c98be0' },
+  { name:'睚魯家', x:0, z:95, c:'#8fe07a' },
+];
+function drawMinimap(){
+  const p = player ? player.pos : V3();
+  const yaw = player ? player.yaw : 0;
+  mctx.save();
+  mctx.clearRect(0,0,340,340);
+  mctx.translate(170,170);
+  mctx.beginPath(); mctx.arc(0,0,168,0,Math.PI*2); mctx.clip();
+  // 沙地底
+  mctx.fillStyle = '#8d7a55'; mctx.fillRect(-170,-170,340,340);
+  mctx.rotate(yaw);   // 玩家面向朝上
+  mctx.translate(-p.x*MINI_SCALE, -p.z*MINI_SCALE);
+  // 海面
+  mctx.fillStyle = '#2c6f86'; mctx.fillRect(-400, (-90)*MINI_SCALE, 800, 44*MINI_SCALE + 400);
+  mctx.fillStyle = 'rgba(255,255,255,0.18)'; mctx.fillRect(-400, -56*MINI_SCALE, 800, 3);
+  // 街道
+  mctx.fillStyle = '#b9a882'; mctx.fillRect(-4.5*MINI_SCALE, -40*MINI_SCALE, 9*MINI_SCALE, 125*MINI_SCALE);
+  mctx.fillRect(4*MINI_SCALE, 30.5*MINI_SCALE, 37*MINI_SCALE, 7*MINI_SCALE);
+  mctx.fillRect(37*MINI_SCALE, 19*MINI_SCALE, 36*MINI_SCALE, 34*MINI_SCALE);
+  // 建築
+  mctx.fillStyle = '#5b4a34';
+  for(const b of mapRects) mctx.fillRect(b.x*MINI_SCALE, b.z*MINI_SCALE, b.w*MINI_SCALE, b.d*MINI_SCALE);
+  mctx.strokeStyle = 'rgba(0,0,0,0.25)'; mctx.lineWidth = 1;
+  for(const b of mapRects) mctx.strokeRect(b.x*MINI_SCALE, b.z*MINI_SCALE, b.w*MINI_SCALE, b.d*MINI_SCALE);
+  // NPC 與羊
+  mctx.fillStyle = 'rgba(245,235,215,0.55)';
+  for(const e of npcs){ mctx.beginPath(); mctx.arc(e.pos.x*MINI_SCALE, e.pos.z*MINI_SCALE, 1.6, 0, 6.283); mctx.fill(); }
+  mctx.fillStyle = 'rgba(255,255,255,0.8)';
+  for(const s of sheepList){ mctx.beginPath(); mctx.arc(s.pos.x*MINI_SCALE, s.pos.z*MINI_SCALE, 1.8, 0, 6.283); mctx.fill(); }
+  // 耶穌標記
+  if(CH.jesus !== player){ drawMarker(CH.jesus.pos.x, CH.jesus.pos.z, '#ffd75e', 6); }
+  // 永久地標
+  for(const m of MARKERS){
+    drawMarker(m.x, m.z, m.c, 5.5);
+    mctx.save();
+    mctx.translate(m.x*MINI_SCALE, m.z*MINI_SCALE);
+    mctx.rotate(-yaw);
+    mctx.fillStyle = '#fff'; mctx.font = 'bold 15px "Microsoft JhengHei", sans-serif'; mctx.textAlign = 'center';
+    mctx.shadowColor = '#000'; mctx.shadowBlur = 4;
+    mctx.fillText(m.name, 0, -11);
+    mctx.restore();
+  }
+  // 目標光環
+  if(questTarget){ mctx.strokeStyle = 'rgba(255,215,94,'+(0.45+0.4*Math.sin(gameTime*3))+')'; mctx.lineWidth = 4;
+    mctx.beginPath(); mctx.arc(questTarget.x*MINI_SCALE, questTarget.z*MINI_SCALE, 12, 0, 6.283); mctx.stroke(); }
+  mctx.restore();
+  // 玩家箭頭（固定居中朝上）
+  mctx.save(); mctx.translate(170,170);
+  mctx.fillStyle = '#fff'; mctx.strokeStyle = '#1a1410'; mctx.lineWidth = 3;
+  mctx.beginPath(); mctx.moveTo(0,-11); mctx.lineTo(8,8); mctx.lineTo(0,4); mctx.lineTo(-8,8); mctx.closePath();
+  mctx.stroke(); mctx.fill(); mctx.restore();
+}
+function drawMarker(x, z, color, r){
+  mctx.save(); mctx.translate(x*MINI_SCALE, z*MINI_SCALE);
+  mctx.fillStyle = color; mctx.beginPath(); mctx.arc(0,0,r,0,6.283); mctx.fill();
+  mctx.strokeStyle = 'rgba(0,0,0,0.6)'; mctx.lineWidth = 2; mctx.stroke();
+  mctx.restore();
+}
+
+/* =====================================================================
+   對話 /提示 / UI
+   ===================================================================== */
+let dlgOpen = false, dlgResolve = null, dlgQueue = [];
+function say(who, txt){ return new Promise(res=>{ dlgQueue.push({who, txt, res}); if(!dlgOpen) nextLine(); }); }
+function nextLine(){
+  const it = dlgQueue.shift();
+  if(!it){ dlgOpen = false; dlgResolve = null; $('dialogue').style.display = 'none'; return; }
+  dlgOpen = true; dlgResolve = it.res;
+  $('dialogue').style.display = 'block'; $('dWho').textContent = it.who; $('dTxt').textContent = it.txt;
+}
+function advanceDialogue(){ if(!dlgOpen) return; const r = dlgResolve; dlgResolve = null; r && r(); nextLine(); }
+$('dialogue').addEventListener('click', advanceDialogue);
+function clearDialogue(){ dlgQueue.length = 0; dlgOpen = false; dlgResolve = null; $('dialogue').style.display='none'; }
+let toastT = 0;
+function toast(msg, ms=2600){ $('toast').textContent = msg; $('toast').style.opacity = 1; toastT = ms/1000; }
+function banner(t1, t2, t3='', ms=3800){
+  $('actT1').textContent = t1; $('actT2').textContent = t2; $('actT3').textContent = t3;
+  $('actBanner').style.opacity = 1;
+  setTimeout(()=>{ $('actBanner').style.opacity = 0; }, ms);
+}
+let questTarget = null;
+function setObjective(roleName, act, obj, hint=''){
+  $('hudRole').textContent = roleName; $('hudAct').textContent = act; $('hudObj').textContent = obj;
+  $('hudHint').textContent = hint || '空白鍵：互動';
+}
+function prompt(txt){
+  const el = $('prompt');
+  if(txt){ el.textContent = txt; el.style.display = 'block'; } else el.style.display = 'none';
+}
+
+/* =====================================================================
+   玩家 / 任務流程
+   ===================================================================== */
+let player = null, playerRole = null, playerSpeed = 3.4;
+let stamina = 1, staminaOn = false;
+let busy = false, storyStarted = false;
+const pending = [];
+function waitFor(fn){ return new Promise(res=> pending.push({fn, res})); }
+function waitSec(s){ return new Promise(r=> setTimeout(r, s*1000)); }
+
+function onAction(){
+  if(dlgOpen){ advanceDialogue(); return; }
+  if(busy || !player) return;
+  actionHandler && actionHandler();
+}
+let actionHandler = null;
+
+const START = {
+  jesus: { x:0, z:-42, yaw:0 },
+  peter: { x:2.2, z:-40, yaw:0 },
+  jairus: { x:5.6, z:104.4, yaw:Math.PI },
+  woman: { x:1.5, z:33, yaw:Math.PI },
+};
+async function startRole(role){
+  playerRole = role;
+  const s = START[role];
+  player = CH[role];
+  player.movable = true;
+  player.pos.set(s.x, 0, s.z); player.face(s.yaw);
+  // 其他角色的相對位置
+  if(role !== 'jesus'){ CH.jesus.pos.set(0, 0, -42); CH.jesus.face(0); }
+  if(role === 'woman'){ CH.jesus.setPos(0, 12); CH.jesus.face(0); CH.jesus.behavior = 'idle'; }
+  if(role !== 'peter'){ CH.peter.pos.set(2.4, 0, -41); CH.peter.face(0); }
+  if(role !== 'jairus'){ CH.jairus.pos.set(-2.6, 0, -40); CH.jairus.face(0); }
+  if(role !== 'woman'){ CH.woman.pos.set(0.4, 0, 30); CH.woman.face(0); }
+  CH.john.pos.set(-2, 0, -44); CH.james.pos.set(2, 0, -45);
+  CH.daughter.pos.set(JAIRUS.bed.x, 0, JAIRUS.bed.z);
+  CH.daughter.lie = 1; CH.daughter.lieY = 0.62; CH.daughter.face(Math.PI/2);
+  CH.messenger.pos.set(0, 0, 88); CH.messenger.behavior = 'idle';
+  staminaOn = role === 'woman'; $('stamina').style.display = staminaOn ? 'block' : 'none';
+  $('hudRole').textContent = { jesus:'耶穌', woman:'血漏病婦人', jairus:'睚魯', peter:'彼得' }[role];
+  $('hudRole').style.display = 'block';
+  $('start').style.display = 'none'; $('hud').style.display = 'block'; $('vignette').style.display = 'block';
+  setupTouch();
+  // 初始鏡頭
+  camYaw = s.yaw; setCam(role === 'jairus' ? 4 : 2);
+  storyStarted = true;
+  runStory(role);
+}
+
+async function runStory(role){
+  await waitSec(0.6);
+  if(role === 'jairus'){
+    banner('第一幕', '睚魯求主', '馬可福音 5:22-24');
+    setObjective('睚魯', '第一幕 · 睚魯求主', '先到女兒的床邊，與她說話', '走向床邊（臥室內）');
+    questTarget = V3(JAIRUS.bed.x - 1.2, 0, JAIRUS.bed.z);
+    await waitFor(()=> player.dist(CH.daughter) < 2.2);
+    prompt('');
+    CH.daughter.lie = 0; CH.daughter.lieY = 0; CH.daughter.face(Math.PI/2);
+    await say('睚魯的女兒', '父親……我好冷。我會不會死？');
+    await say('睚魯', '不會的，孩子。我聽說海邊那位拉比能醫治各樣的病，我這就去求祂。');
+    await say('睚魯的女兒', '父親，不要怕。你快去……我在這裡等你。');
+    CH.daughter.lie = 1; CH.daughter.lieY = 0.62;
+    await say('旁白', '睚魯離開病榻，穿過晨光下的街市，直奔加利利海邊。');
+    setObjective('睚魯', '第一幕 · 睚魯求主', '前往加利利海邊，找到耶穌', 'W A S D 移動 · 數字鍵 1~4 換視角');
+    questTarget = V3(0, 0, -40);
+    await waitFor(()=> player.dist(CH.jesus) < 3.2);
+    questTarget = null; prompt('');
+    actionHandler = null;
+    await say('耶穌', '睚魯，你來得正好。你要我為你做什麼？');
+    CH.jairus.kneelT = 1;
+    await say('睚魯', '我的小女兒快要死了。求你去按手在她身上，使她痊愈，得以活著。');
+    await say('耶穌', '起來吧。我與你同去。');
+    CH.jairus.kneelT = 0;
+    await journey();
+  }
+  else if(role === 'woman'){
+    banner('第二幕', '觸摸衣裳', '馬可福音 5:25-29');
+    setObjective('血漏病婦人', '第二幕 · 觸摸衣裳', '在擁擠的市集中接近耶穌，從後方摸祂外袍的繸子', '體力會消耗，靠近人群更虛弱');
+    questTarget = V3(0, 0, 12);
+    await waitFor(()=> player.dist(CH.jesus) < 2.6);
+    questTarget = null;
+    prompt('空白鍵：觸摸衣裳繸子');
+    await new Promise(res=>{ actionHandler = ()=>{ actionHandler = null; res(); }; });
+    prompt('');
+    player.handT = 0.8; player.kneelT = 1; player.face(Math.atan2(CH.jesus.pos.x-player.pos.x, CH.jesus.pos.z-player.pos.z));
+    const healLight = new THREE.PointLight(0xfff0c0, 0, 12, 2); healLight.position.copy(player.pos).setY(1.2); scene.add(healLight);
+    let t0 = performance.now();
+    await new Promise(res=>{ const f=()=>{ const k=(performance.now()-t0)/900; healLight.intensity = Math.sin(Math.min(k,1)*Math.PI)*5; if(k<1) requestAnimationFrame(f); else { scene.remove(healLight); res(); } }; f(); });
+    await say('旁白', '婦人的手觸到了耶穌外袍的繸子。她十二年血漏的源頭，立時乾了。');
+    await say('耶穌', '誰摸我的衣裳？');
+    await say('血漏病婦人', '主啊……是我。我患了十二年血漏，花盡所有，病情反倒更重。可是我想，只要摸祂的衣裳，就必痊愈。');
+    await say('耶穌', '女兒，你的信救了你，平平安安地回去吧！你的災病痊愈了。');
+    await say('旁白', '她抬起頭，看見主眼中的溫柔。十二年的羞辱與孤單，在那一句話裡被完全接納。');
+    await journey(true);
+  }
+  else if(role === 'peter'){
+    banner('第三幕', '突破人流', '馬可福音 5:24 · 護主開路');
+    setObjective('彼得', '第三幕 · 突破人流', '護送耶穌前往睚魯家，用「吶喊」驅散擋路的人群', '空白鍵：大喊「讓開！」（影響 7 公尺內群眾）');
+    questTarget = V3(0, 0, 95);
+    await journey(false, true);
+  }
+  else { // jesus
+    banner('第三幕', '突破人流', '馬可福音 5:24-31');
+    setObjective('耶穌', '第三幕 · 突破人流', '從海邊穿過市集，前往睚魯的家', '市集中有人群阻擋，空白鍵可推開前方的人');
+    questTarget = V3(0, 0, 95);
+    await journey(false, true);
+  }
+}
+
+/* 旅程：市集人群 → 羊群 → 人牆 → 睚魯家 */
+async function journey(isWoman, obstacles=true){
+  const jesus = CH.jesus;
+  if(playerRole !== 'jesus'){ jesus.behavior = 'follow'; jesus.leader = player; jesus.offset = { back: 1.6, side: 0.9 }; }
+  if(playerRole === 'peter'){ for(const n of groups.mourners) n.behavior = 'idle'; }
+  // 人牆：街市南段聚集
+  let wallDone = false, sheepDone = false;
+  actionHandler = ()=>{
+    // 互動技能：推開 / 吶喊
+    const R = playerRole === 'peter' ? 8 : 3.2;
+    let pushed = 0;
+    for(const e of entities){
+      if(e === player || e.main || e.kind === 'sheep') continue;
+      const d = e.dist(player);
+      if(d < R){
+        const a = Math.atan2(e.pos.x - player.pos.x, e.pos.z - player.pos.z);
+        e.pushed.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3);
+        e.target = null; pushed++;
+      }
+    }
+    for(const s of sheepList){ if(s.dist(player) < R){ const a = Math.atan2(s.pos.x-player.pos.x, s.pos.z-player.pos.z); s.pushed.set(Math.sin(a)*1.6,0,Math.cos(a)*1.6); s.target = null; } }
+    if(playerRole === 'peter'){
+      player.handUp = 1; setTimeout(()=> player.handUp = 0, 700);
+      sfxShout();
+      // 被嚇退的群眾暫時散開
+      for(const n of groups.wall){ if(n.dist(player) < R){ n.behavior = 'wander'; n.zone = { x1: n.pos.x-4, z1: n.pos.z-4, x2: n.pos.x+4, z2: n.pos.z+4 }; n.wait = rr(2,5); } }
+      toast(pushed ? `「讓開！主要過去！」—— 推開 ${pushed} 人` : '「讓開！」');
+    } else {
+      player.handUp = 1; setTimeout(()=> player.handUp = 0, 500);
+      toast(pushed ? `你推開了 ${pushed} 個人` : '前方無人阻擋');
+    }
+  };
+  // 讓市集人群開始朝玩家聚集
+  for(const n of groups.marketCrowd){ if(rnd() > 0.4) n.behavior = 'follow'; n.leader = player; n.offset = { back: rr(0.8, 2.4), side: rr(-3.2, 3.2) }; }
+  setObjective({jesus:'耶穌', woman:'血漏病婦人', jairus:'睚魯', peter:'彼得'}[playerRole], isWoman ? '第三幕 · 跟隨前行' : '第三幕 · 突破人流',
+    isWoman ? '跟隨耶穌前往睚魯的家' : '穿越人潮，抵達睚魯家門口', playerRole==='peter' ? '空白鍵：吶喊開路' : '空白鍵：推開擋路的人');
+  questTarget = V3(0, 0, 89);
+  // 第二幕尾聲：報信
+  if(!isWoman){
+    await waitFor(()=> player.pos.z > 52 || playerRole === 'jairus');
+    if(playerRole === 'jairus' || player.pos.z > 52){
+      CH.messenger.behavior = 'follow'; CH.messenger.leader = player; CH.messenger.offset = { back: -1.2, side: 2.4 };
+      await waitSec(1.2);
+      await say('報信的人', '你的女兒死了，何必還勞動先生呢？');
+      await say('耶穌', '不要怕，只要信！');
+      await say('旁白', '耶穌不許別人跟隨，只帶著彼得、雅各和約翰，往睚魯的家去。');
+      CH.messenger.behavior = 'idle';
+    }
+  }
+  // 人牆：南街群眾湧上來阻擋去路
+  if(obstacles){
+    waitFor(()=> player.pos.z > 44).then(()=>{
+      for(const n of groups.wall){
+        n.behavior = 'follow'; n.leader = player;
+        n.offset = { back: rr(-3.4, -1.0), side: rr(-2.8, 2.8) };
+        n.walkSpeed = 3.2;
+      }
+      toast('人群蜂擁而上，擋住了去路！');
+    });
+  }
+  // 抵達家門
+  await waitFor(()=> player.pos.z > 86 && Math.abs(player.pos.x) < 6);
+  questTarget = V3(0, 0, 101);
+  setObjective({jesus:'耶穌', woman:'血漏病婦人', jairus:'睚魯', peter:'彼得'}[playerRole], '第四幕 · 大利大古米', '進入睚魯的家，走向女孩的房間', 'W A S D 移動');
+  await waitFor(()=> player.pos.z > 99.5);
+  await finalScene();
+}
+
+async function finalScene(){
+  busy = true; actionHandler = null; prompt('');
+  camMode = 4; setCam(4);
+  // 眾人進屋：耶穌、彼得、睚魯跟隨
+  const targets = [[-1.4, 103.2], [0.6, 103.6], [-2.4, 104.2]];
+  const cast = [CH.jesus, CH.peter, CH.jairus].filter(e=>e !== player);
+  cast.forEach((e,i)=>{ e.behavior = 'idle'; e.target = V3(targets[i][0],0,targets[i][1]); e.goSpeed = 1.6; e.onArrive = null; });
+  if(playerRole !== 'jairus'){ CH.jairus.target = V3(-3.2, 0, 104.4); CH.jairus.goSpeed = 1.6; }
+  player.target = null;
+  await say('旁白', '進了睚魯的家，只見許多人亂嚷，並有許多人哭泣哀號。');
+  CH.mourners.forEach((m,i)=>{ m.wail = 1; m.setPos(rr(-6,-1), rr(103,108)); m.lookAt(V3(5.6,0,107)); });
+  await say('耶穌', '為什麼亂嚷哭泣呢？孩子不是死了，是睡著了。');
+  await say('旁白', '他們就嗤笑耶穌。耶穌把他們都攆出去，只帶著孩子的父母和跟隨的人，進了孩子所在的房間。');
+  CH.mourners.forEach(m=>{ m.wail = 0; m.movable = false; m.setPos(rr(-8,-3), rr(96,102)); m.behavior='idle'; });
+  // 女孩起身
+  CH.daughter.lie = 0; CH.daughter.lieY = 0;
+  await say('睚魯', '主啊……她已經……');
+  CH.jesus.kneelT = 1; CH.jesus.face(Math.atan2(CH.daughter.pos.x - CH.jesus.pos.x, CH.daughter.pos.z - CH.jesus.pos.z));
+  await waitSec(0.6);
+  await say('耶穌', '小女孩，我吩咐你起來！—— 大利大古米！');
+  const light = new THREE.PointLight(0xffe9b0, 0, 14, 2); light.position.set(5.6, 2, 107.2); scene.add(light);
+  let t0 = performance.now();
+  await new Promise(res=>{ const f=()=>{ const k=(performance.now()-t0)/1800; light.intensity = Math.sin(Math.min(k,1)*Math.PI)*6; if(k<1){ CH.daughter.g.rotation.x = -Math.PI/2*(1-k)*0.9; } else { scene.remove(light); CH.jesus.kneelT = 0; res(); } requestAnimationFrame(f); }; f(); });
+  CH.daughter.face(0); CH.daughter.pos.set(5.6, 0, 106.2);
+  await say('旁白', '女孩立時起來行走。那年她十二歲。眾人就大大地驚奇。');
+  await say('耶穌', '囑咐人給她東西吃。');
+  await say('睚魯', '主啊，我從前只求醫治，如今我知道——你是生命的源頭。');
+  banner('第四幕', '大利大古米', '馬可福音 5:41-42', 5000);
+  await waitSec(3.2);
+  showEnd();
+}
+function showEnd(){
+  $('hud').style.display = 'none';
+  $('vignette').style.display = 'none';
+  $('end').style.display = 'flex';
+  $('letterbox').style.opacity = 0;
+  renderer.domElement.style.filter = 'blur(2px) brightness(0.55)';
+  setTimeout(()=>{ renderer.domElement.style.filter = 'blur(3px) brightness(0.45)'; }, 800);
+}
+
+/* =====================================================================
+   相機四模式
+   ===================================================================== */
+let camPos = V3(0, 20, 40), camLook = V3();
+function updateCamera(dt){
+  if(!player) return;
+  const p = player.pos, yaw = player.yaw + dragYaw;
+  if(camMode === 1){
+    const target = V3(p.x, 58, p.z + 14);
+    camPos.lerp(target, Math.min(1, dt*2.2));
+    camLook.lerp(V3(p.x, 0, p.z), Math.min(1, dt*3));
+    camera.position.copy(camPos); camera.lookAt(camLook);
+    camera.fov = 60;
+  } else if(camMode === 2){
+    const d = camDist, h = 2.55 + Math.sin(dragPitch)*2, back = Math.cos(dragPitch)*d;
+    const target = V3(p.x - Math.sin(yaw)*back, h + 1.1, p.z - Math.cos(yaw)*back);
+    camPos.lerp(target, Math.min(1, dt*7));
+    resolveCamera(camPos);
+    camera.position.copy(camPos);
+    camLook.lerp(V3(p.x + Math.sin(yaw)*1.5, 1.55, p.z + Math.cos(yaw)*1.5), Math.min(1, dt*9));
+    camera.lookAt(camLook);
+    camera.fov = 58;
+  } else if(camMode === 3){
+    camera.position.set(p.x + Math.sin(yaw+Math.PI)*0.18, 1.63, p.z + Math.cos(yaw+Math.PI)*0.18);
+    camera.rotation.set(0,0,0);
+    camera.lookAt(V3(p.x + Math.sin(yaw)*8, 1.63 - dragPitch*9, p.z + Math.cos(yaw)*8));
+    camera.fov = 68;
+  } else {
+    const a = gameTime*0.22 + 0.6, r = 5.4;
+    camera.position.set(p.x + Math.cos(a)*r, 2.0 + Math.sin(gameTime*0.3)*0.4, p.z + Math.sin(a)*r);
+    camera.lookAt(V3(p.x, 1.4, p.z));
+    camera.fov = 42;
+  }
+  camera.updateProjectionMatrix();
+}
+function resolveCamera(v){
+  for(const c of colliders){
+    if(v.x > c.x1-0.4 && v.x < c.x2+0.4 && v.z > c.z1-0.4 && v.z < c.z2+0.4 && v.y < 4.5){ v.y = 5.2; break; }
+  }
+  if(v.z < -49) v.z = -49;
+}
+
+/* =====================================================================
+   主循環
+   ===================================================================== */
+const clock = new THREE.Clock();
+let mmTick = 0;
+function tick(){
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  gameTime += dt;
+  skyMat.uniforms.uTime.value = gameTime;
+  waterMat.uniforms.uTime.value = gameTime;
+  waterMat.uniforms.uCam.value.copy(camera.position);
+  // 玩家移動
+  if(player && !busy){
+    let mx = 0, mz = 0;
+    if(!dlgOpen){
+      if(keys['w'] || keys['arrowup']) mz += 1;
+      if(keys['s'] || keys['arrowdown']) mz -= 1;
+      if(keys['a'] || keys['arrowleft']) mx -= 1;
+      if(keys['d'] || keys['arrowright']) mx += 1;
+      mx += joyVec.x; mz += joyVec.y;
+    }
+    const len = Math.hypot(mx, mz);
+    if(len > 0.05){
+      mx /= len; mz /= len;
+      const cy = player.yaw + (camMode === 2 || camMode === 3 ? 0 : 0);
+      // 相對於鏡頭方向
+      const camDir = camMode === 1 ? 0 : (player.yaw + dragYaw);
+      let sp = playerSpeed;
+      if(playerRole === 'woman') sp *= 0.62 + 0.38*stamina;
+      if(playerRole === 'jesus' || playerRole === 'peter') sp *= 1.05;
+      const wx = Math.sin(camDir)*mz + Math.cos(camDir)*mx;
+      const wz = Math.cos(camDir)*mz - Math.sin(camDir)*mx;
+      player.pos.x += wx*sp*dt; player.pos.z += wz*sp*dt;
+      player.yaw = lerpAngle(player.yaw, Math.atan2(wx, wz), Math.min(1, dt*12));
+      player.speed = sp;
+      resolveCollision(player.pos, player.radius);
+    } else player.speed = 0;
+    player.animate(dt);
+    // 體力
+    if(staminaOn){
+      let crowd = 0;
+      for(const e of npcs){ if(e.dist(player) < 3.5) crowd++; }
+      stamina = clamp(stamina - dt*(0.018 + crowd*0.012) + (crowd < 2 ? dt*0.03 : 0), 0, 1);
+      $('stamBar').style.width = (stamina*100).toFixed(0)+'%';
+      if(stamina < 0.15 && !player.lowStamWarned){ player.lowStamWarned = true; toast('你感到極度虛弱……但信心仍舊堅定'); }
+    }
+  }
+  // 實體
+  for(const e of entities){
+    if(e === player || e.kind === 'sheep') continue;
+    e.update(dt);
+    if(e.solid && e.kind === 'human'){
+      const d = e.dist(player || e);
+      if(player && d < 0.75){
+        const a = Math.atan2(player.pos.x - e.pos.x, player.pos.z - e.pos.z);
+        const push = (0.75 - d);
+        if(e.main || e.behavior !== 'follow'){ player.pos.x += Math.sin(a)*push*0.7; player.pos.z += Math.cos(a)*push*0.7; }
+      }
+    }
+  }
+  for(const s of sheepList) s.update(dt);
+  if(player) resolveCollision(player.pos, player.radius);
+  // 鏡頭
+  updateCamera(dt);
+  sun.target.position.set(player ? player.pos.x : 0, 0, player ? player.pos.z : 0);
+  sun.position.set((player?player.pos.x:0) + 55, 95, (player?player.pos.z:0) - 45);
+  // UI 計時
+  if(toastT > 0){ toastT -= dt; if(toastT <= 0) $('toast').style.opacity = 0; }
+  // 燈火閃爍
+  for(const L of lamps){ const f = 0.85 + Math.sin(gameTime*9 + L.base)*0.12 + Math.sin(gameTime*23)*0.05; L.flame.scale.set(0.035, 0.06*f, 0.035); L.light.intensity = L.base*f; }
+  // 任務條件
+  for(let i = pending.length - 1; i >= 0; i--){ if(pending[i].fn()){ const p = pending.splice(i,1)[0]; p.res(); } }
+  if(storyStarted){ mmTick += dt; if(mmTick > 0.08){ mmTick = 0; drawMinimap(); } }
+  renderer.render(scene, camera);
+}
+
+/* =====================================================================
+   音效（WebAudio 程序化：海浪、市集、羊、人群、中東風配樂）
+   ===================================================================== */
+let AC = null, master = null, musicOn = true, ambienceOn = true;
+function initAudio(){
+  if(AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return; }
+  master = AC.createGain(); master.gain.value = 0.55; master.connect(AC.destination);
+  // 海浪：粉紅噪音 + 慢速濾波
+  const len = AC.sampleRate * 4, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+  let last = 0;
+  for(let i=0;i<len;i++){ const w = Math.random()*2-1; last = (last + 0.02*w)/1.02; d[i] = last*3.5; }
+  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+  const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 620;
+  const wg = AC.createGain(); wg.gain.value = 0.10;
+  const lfo = AC.createOscillator(); lfo.frequency.value = 0.11; const lfoG = AC.createGain(); lfoG.gain.value = 0.06;
+  lfo.connect(lfoG); lfoG.connect(wg.gain); lfo.start();
+  src.connect(lp); lp.connect(wg); wg.connect(master); src.start();
+  // 人群呢喃：噪音 + 帶通 + 隨機音高
+  const mur = AC.createBufferSource(); mur.buffer = buf; mur.loop = true; mur.playbackRate.value = 1.8;
+  const bp = AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value = 420; bp.Q.value = 1.2;
+  const mg = AC.createGain(); mg.gain.value = 0.03;
+  mur.connect(bp); bp.connect(mg); mg.connect(master); mur.start();
+  // 中東風配樂：D Hijaz 音階琶音
+  const scale = [293.66, 311.13, 369.99, 392.0, 440.0, 466.16, 554.37, 587.33]; // D Eb F# G A Bb C D
+  let step = 0;
+  const schedule = ()=>{
+    if(!musicOn || !AC) return;
+    const t = AC.currentTime + 0.05;
+    const n = scale[Math.floor(Math.random()*scale.length)];
+    pluck(n, t, 0.9);
+    if(step % 4 === 0) drone(scale[0]/2, t, 3.2);
+    if(step % 8 === 3) pluck(scale[Math.floor(Math.random()*4)]/2, t + 0.4, 1.2);
+    step++;
+  };
+  setInterval(schedule, 620);
+  // 羊叫：偶爾
+  setInterval(()=>{ if(ambienceOn && Math.random() < 0.5) baa(); }, 4200);
+  // 市集叫賣
+  setInterval(()=>{ if(ambienceOn && Math.random() < 0.45) vendorCry(); }, 6500);
+}
+function pluck(freq, t, dur){
+  if(!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'triangle'; o.frequency.value = freq;
+  o.detune.value = (Math.random()-0.5)*12;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.09, t+0.01); g.gain.exponentialRampToValueAtTime(0.0008, t+dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.05);
+}
+function drone(freq, t, dur){
+  if(!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+  o.type='sawtooth'; o.frequency.value = freq; f.type='lowpass'; f.frequency.value = 700;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.03, t+0.4); g.gain.linearRampToValueAtTime(0, t+dur);
+  o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.1);
+}
+function baa(){
+  if(!AC) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(300, t); o.frequency.linearRampToValueAtTime(170, t+0.55);
+  const f = AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value = 900; f.Q.value = 3;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t+0.05); g.gain.linearRampToValueAtTime(0, t+0.6);
+  o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+0.65);
+}
+function vendorCry(){
+  // 遠處叫賣：快速滑音
+  if(!AC) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type='square'; o.frequency.setValueAtTime(rr(220,300), t); o.frequency.linearRampToValueAtTime(rr(160,200), t+0.5);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.015, t+0.03); g.gain.linearRampToValueAtTime(0, t+0.55);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.6);
+}
+function sfxShout(){
+  if(!AC) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+  o.type='sawtooth'; o.frequency.setValueAtTime(140, t); o.frequency.linearRampToValueAtTime(95, t+0.4);
+  f.type='bandpass'; f.frequency.value = 700; f.Q.value = 1.4;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22, t+0.03); g.gain.linearRampToValueAtTime(0, t+0.5);
+  o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+0.55);
+}
+function sfxChime(){
+  if(!AC) return;
+  const t = AC.currentTime;
+  [523.25, 659.25, 783.99, 1046.5].forEach((f,i)=>pluck(f, t+i*0.12, 1.6));
+}
+
+/* =====================================================================
+   啟動
+   ===================================================================== */
+$('start').style.display = 'flex';
+setLoad(1);
+document.querySelectorAll('#start .role').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    initAudio();
+    if(AC && AC.state === 'suspended') AC.resume();
+    const r = el.dataset.role;
+    $('start').style.display = 'none';
+    $('loading').style.display = 'none';
+    startRole(r);
+    sfxChime();
+  });
+});
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+// 初始背景鏡頭（選單後面）
+camera.position.set(40, 42, 60); camera.lookAt(0, 0, 10);
+tick();
+window.__game = { CH, entities, npcs, sheepList, scene, camera, renderer };
+</script>
+</body>
+</html>
